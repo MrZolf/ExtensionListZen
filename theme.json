@@ -1,0 +1,29 @@
+{
+  "id": "extensions-list-sine",
+  "name": "Extensions List",
+  "description": "Displays Zen Browser extensions in a named, scrollable vertical list.",
+  "homepage": "https://github.com/",
+  "readme": "README.md",
+  "author": "Custom",
+  "version": "1.0.0",
+  "style": {
+    "chrome": "userChrome.css"
+  },
+  "scripts": {
+    "extensions-list.uc.js": {
+      "name": "Extensions List",
+      "description": "Adds real extension names to the unified extensions panel.",
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    }
+  },
+  "tags": [
+    "extensions",
+    "toolbar",
+    "interface"
+  ],
+  "fork": [
+    "zen"
+  ]
+}

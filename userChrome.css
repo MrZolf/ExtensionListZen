@@ -1,0 +1,108 @@
+/*
+ * Extensions List - Zen Browser / Sine
+ * Layout rules for both normal and overflowed extension groups.
+ */
+
+/* Keep the extension section bounded by the available panel height.
+   The panel body itself becomes the scroll container, so settings below
+   the extension list remain reachable instead of being clipped. */
+#zen-site-data-addons {
+  max-height: 70vh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+}
+
+/* Both extension groups must use the same vertical layout.
+   Zen can render normal and overflowed extensions in separate containers. */
+#zen-site-data-addons #unified-extensions-area,
+#zen-site-data-addons #overflowed-extensions-list,
+#zen-site-data-addons .unified-extensions-list {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  gap: 2px !important;
+  overflow: visible !important;
+}
+
+/* Each extension occupies a full-width row. */
+#zen-site-data-addons toolbaritem.unified-extensions-item {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 34px !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep the native extension action button and icon intact. */
+#zen-site-data-addons .unified-extensions-item-action-button {
+  display: flex !important;
+  flex: 0 0 36px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Native menu button stays at the far right. */
+#zen-site-data-addons .unified-extensions-item-menu-button {
+  display: flex !important;
+  flex: 0 0 30px !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  margin-inline-start: auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Make nested row wrappers fill the available width instead of wrapping. */
+#zen-site-data-addons .unified-extensions-item-row-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Remove grid sizing inherited from Zen's toolbar layout. */
+#zen-site-data-addons .unified-extensions-item,
+#zen-site-data-addons .unified-extensions-item > * {
+  box-sizing: border-box !important;
+}
+
+/* The two groups should look like one continuous list. */
+#zen-site-data-addons #unified-extensions-area,
+#zen-site-data-addons .unified-extensions-list {
+  margin-block: 0 !important;
+  padding-block: 0 !important;
+}
+
+/* Do not let long extension names enlarge the panel. */
+#zen-site-data-addons .extensions-list-native-name {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Narrow panels: preserve usable space for icon and menu button. */
+@media (max-width: 420px) {
+  #zen-site-data-addons .extensions-list-native-name {
+    font-size: 11px !important;
+  }
+}
