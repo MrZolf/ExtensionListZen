@@ -11,3 +11,9 @@
 - Selektor `.unified-extensions-item` zamiast `toolbaritem.unified-extensions-item` (obsluga <unified-extensions-item>)
 - Uzycie natywnej nazwy zamiast wlasnego labela; usuniety blad `" flex"`
 - Przycisk akcji nie ma juz sztywnych 36px
+
+## 1.1.0
+- Jednolity wyglad kafelkow (usuniete przyciemnienie nazw i przerwa miedzy grupami)
+- Przycisk "+" przeniesiony na gore + przycisk ustawien rozszerzen
+- Panel szerszy o ~40%, margines po prawej dla scrolla
+- Przypinanie na poczatek listy z menu 3 kropek

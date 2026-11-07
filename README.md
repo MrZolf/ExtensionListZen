@@ -74,4 +74,3 @@ Zen changes its internal browser UI between releases. If these selectors or the 
 ## Uninstall
 
 Disable or remove **Extensions List** in Sine and restart Zen. The mod does not alter extension settings or persistent browser data.
-# ExtensionListZen
