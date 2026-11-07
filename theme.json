@@ -5,7 +5,7 @@
   "homepage": "https://github.com/",
   "readme": "README.md",
   "author": "Custom",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "style": {
     "chrome": "userChrome.css"
   },
