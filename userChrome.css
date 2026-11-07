@@ -2,24 +2,36 @@
  * Extensions List - Zen Browser / Sine  (v1.1.0)
  */
 
-/* ---------- Panel: ~40% wider ---------- */
+/* ---------- Panel: ~40% wider (every wrapper level) ---------- */
 #zen-unified-site-data-panel {
   --ext-list-width: 332px;
   --ext-list-accent: var(--zen-primary-color, AccentColor);
   --ext-list-tile: color-mix(in srgb, currentColor 7%, transparent);
   --ext-list-tile-hover: color-mix(in srgb, currentColor 14%, transparent);
+  --panel-width: var(--ext-list-width);
 }
-#zen-unified-site-data-panel panelview,
+#zen-unified-site-data-panel,
+#zen-unified-site-data-panel > panelmultiview,
 #zen-unified-site-data-panel .panel-viewcontainer,
-#zen-unified-site-data-panel .panel-viewstack {
-  min-width: var(--ext-list-width) !important;
-}
-#zen-unified-site-data-panel panelview {
+#zen-unified-site-data-panel .panel-viewstack,
+#zen-unified-site-data-panel panelview#unified-extensions-view {
   width: var(--ext-list-width) !important;
+  min-width: var(--ext-list-width) !important;
+  max-width: var(--ext-list-width) !important;
+  box-sizing: border-box !important;
+}
+#zen-unified-site-data-panel::part(content) {
+  min-width: var(--ext-list-width) !important;
   max-width: var(--ext-list-width) !important;
 }
 
-/* ---------- Action bar (+ / manage) ---------- */
+/* Zen's own "+" at the end of the list - replaced by the action bar */
+#zen-site-data-new-addon-button-container,
+#zen-site-data-new-addon-button {
+  display: none !important;
+}
+
+/* ---------- Action bar (icon-only: + / settings) ---------- */
 #extensions-list-actions {
   display: flex !important;
   flex-direction: row !important;
@@ -32,14 +44,12 @@
 #extensions-list-actions > toolbarbutton {
   display: flex !important;
   flex: 1 1 0 !important;
-  flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
   min-width: 0 !important;
   height: 34px !important;
   margin: 0 !important;
-  padding: 0 12px !important;
+  padding: 0 !important;
   border-radius: 8px !important;
   border: 1px solid color-mix(in srgb, currentColor 12%, transparent) !important;
   background: var(--ext-list-tile) !important;
@@ -62,17 +72,8 @@
   fill: currentColor !important;
   stroke: currentColor !important;
 }
-#extensions-list-actions > toolbarbutton .toolbarbutton-text,
-#extensions-list-actions > toolbarbutton .toolbarbutton-badge-stack ~ * {
+#extensions-list-actions > toolbarbutton .toolbarbutton-text {
   display: none !important;
-}
-#extensions-list-actions > toolbarbutton::after {
-  content: attr(data-ext-label);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ---------- List container: one flat flex column, with scroll gutter ---------- */

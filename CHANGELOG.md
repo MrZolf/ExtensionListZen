@@ -17,3 +17,8 @@
 - Przycisk "+" przeniesiony na gore + przycisk ustawien rozszerzen
 - Panel szerszy o ~40%, margines po prawej dla scrolla
 - Przypinanie na poczatek listy z menu 3 kropek
+
+## 1.2.0
+- Poszerzenie wszystkich kontenerow panelu (panelmultiview/viewcontainer/viewstack)
+- Ukryty domyslny plus Zena; wlasne przyciski ikonowe (AMO + ustawienia)
+- Teksty wg jezyka przegladarki (pl/en)

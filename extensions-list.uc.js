@@ -22,6 +22,21 @@
 
   const log = (...a) => console.info(`[${MOD_ID}]`, ...a);
 
+  /* ---------- i18n (browser language: pl / en) ---------- */
+  const isPl = (Services.locale.appLocaleAsBCP47 || "en").toLowerCase().startsWith("pl");
+  const T = isPl ? {
+    pin: "Przypnij na początek listy",
+    unpin: "Odepnij z początku listy",
+    add: "Dodaj rozszerzenia",
+    settings: "Ustawienia rozszerzeń"
+  } : {
+    pin: "Pin to top of list",
+    unpin: "Unpin from top of list",
+    add: "Add extensions",
+    settings: "Extension settings"
+  };
+  const AMO_URL = "https://addons.mozilla.org/en-GB/firefox/";
+
   /* ---------- pinned storage ---------- */
   function getPinned() {
     try {
@@ -117,7 +132,6 @@
     btn.id = id;
     btn.className = "subviewbutton subviewbutton-iconic";
     btn.setAttribute("image", icon);
-    btn.setAttribute("data-ext-label", label);
     btn.setAttribute("tooltiptext", label);
     btn.setAttribute("aria-label", label);
     btn.addEventListener("command", onCommand);
@@ -128,16 +142,15 @@
     document.getElementById("zen-unified-site-data-panel")?.hidePopup?.();
   }
 
-  function findAddButton(section) {
-    const candidates = [...section.querySelectorAll(
-      "toolbarbutton, button, .subviewbutton, [role='button']"
-    )].filter(el =>
-      !el.closest(ITEM_SELECTOR)
-      && !el.closest(`#${ACTIONS_ID}`)
-      && el.id !== "zen-site-data-manage-addons"
-      && !el.closest(".zen-site-data-section-header")
-    );
-    return candidates.at(-1) || null;
+  function openAmo() {
+    try {
+      openTrustedLinkIn(AMO_URL, "tab");
+    } catch (_) {
+      gBrowser.selectedTab = gBrowser.addTab(AMO_URL, {
+        triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()
+      });
+    }
+    closePanel();
   }
 
   function ensureActions() {
@@ -145,33 +158,15 @@
     const list = document.getElementById(LIST_ID);
     if (!section || !list || document.getElementById(ACTIONS_ID)) return;
 
-    const bar = document.createElement("hbox");
+    const bar = document.createXULElement("hbox");
     bar.id = ACTIONS_ID;
-
-    let add = findAddButton(section);
-    if (add) {
-      log("moving existing add button", add);
-      add.setAttribute("data-ext-label", "Dodaj");
-      add.setAttribute("tooltiptext", "Dodaj rozszerzenie");
-      if (!add.getAttribute("image") && !add.querySelector(".toolbarbutton-icon")) {
-        add.setAttribute("image", "chrome://global/skin/icons/plus.svg");
-      }
-    } else {
-      log("add button not found - using fallback");
-      add = makeButton(
-        "extensions-list-add-fallback", "Dodaj", "chrome://global/skin/icons/plus.svg",
-        () => { BrowserAddonUI.openAddonsMgr("addons://discover/"); closePanel(); }
-      );
-      add.setAttribute("tooltiptext", "Dodaj rozszerzenie");
-    }
-
-    const manage = makeButton(
-      "extensions-list-manage", "Ustawienia", "chrome://global/skin/icons/settings.svg",
-      () => { BrowserAddonUI.openAddonsMgr("addons://list/extension"); closePanel(); }
+    bar.append(
+      makeButton("extensions-list-add", T.add,
+        "chrome://global/skin/icons/plus.svg", openAmo),
+      makeButton("extensions-list-manage", T.settings,
+        "chrome://global/skin/icons/settings.svg",
+        () => { BrowserAddonUI.openAddonsMgr("addons://list/extension"); closePanel(); })
     );
-    manage.setAttribute("tooltiptext", "Ustawienia rozszerzeń");
-
-    bar.append(add, manage);
     list.before(bar);
   }
 
@@ -202,7 +197,7 @@
     entry.setAttribute("data-ext-id", id);
     entry.setAttribute(
       "label",
-      getPinned().includes(id) ? "Odepnij z początku listy" : "Przypnij na początek listy"
+      getPinned().includes(id) ? T.unpin : T.pin
     );
   }
 
