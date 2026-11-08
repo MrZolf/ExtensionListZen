@@ -240,6 +240,7 @@
     const toggle = document.createXULElement("toolbarbutton");
     toggle.id = TOGGLE_ID;
     toggle.className = "subviewbutton";
+    toggle.setAttribute("closemenu", "none");
     toggle.hidden = true;
     toggle.addEventListener("command", () => {
       state.showHidden = !state.showHidden;
@@ -265,6 +266,7 @@
     let h = Math.round(pr.height);
     if (!reset && fit.viewH != null) h = Math.round(fit.popupH + (vr.height - fit.viewH));
 
+    log("fit", { popup: [pr.width, pr.height], view: [vr.width, vr.height], margin: mx, target: [w, h], state: panel.state });
     if (Math.abs(w - pr.width) > 1 || Math.abs(h - pr.height) > 1) {
       try { panel.sizeTo(w, h); } catch (e) { console.warn(`[${MOD_ID}] sizeTo failed`, e); }
     }
@@ -287,14 +289,46 @@
     return entry;
   }
 
+  const SEP_ID = "extensions-list-sep-top";
+
+  /* Order: [permissions...] ─ Pin to Toolbar, Pin to top, Move Up, Move Down, Hide ─ Manage/Remove/Report */
+  function arrangeMenu(menu, pin, hide) {
+    let sep = document.getElementById(SEP_ID);
+    if (!sep) {
+      sep = document.createXULElement("menuseparator");
+      sep.id = SEP_ID;
+    }
+    const q = s => menu.querySelector(s);
+    const wanted = [
+      sep,
+      q("#unified-extensions-context-menu-pin-to-toolbar"),
+      pin,
+      q("#unified-extensions-context-menu-move-widget-up"),
+      q("#unified-extensions-context-menu-move-widget-down"),
+      hide
+    ].filter(Boolean);
+    const anchor = q(".unified-extensions-context-menu-management-separator")
+      || q("#unified-extensions-context-menu-manage-extension");
+
+    // Skip the DOM churn when the order is already right.
+    const current = [...menu.children];
+    const idx = wanted.map(n => current.indexOf(n));
+    const inOrder = idx.every((v, i) => v >= 0 && (i === 0 || v === idx[i - 1] + 1));
+    if (inOrder && (!anchor || current.indexOf(anchor) === idx[idx.length - 1] + 1)) return;
+
+    for (const node of wanted) {
+      if (anchor) anchor.before(node);
+      else menu.append(node);
+    }
+  }
+
   function onPopupShowing(event) {
     const menu = event.target;
     if (menu?.id !== MENU_ID) return;
 
     const pin = ensureMenuItem(menu, PIN_ITEM_ID, togglePinned);
     const hide = ensureMenuItem(menu, HIDE_ITEM_ID, toggleHidden);
-    if (pin.parentNode !== menu) menu.prepend(pin);
-    if (hide.parentNode !== menu) pin.after(hide);
+    arrangeMenu(menu, pin, hide);
 
     const item = menu.triggerNode?.closest?.(ITEM_SELECTOR);
     const id = menu.dataset?.extensionId || (item ? getExtensionId(item) : "");

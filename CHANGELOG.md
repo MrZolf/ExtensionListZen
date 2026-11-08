@@ -28,3 +28,8 @@
 - Pasek wyszukiwania (dopasowane na gorze, reszta przyciemniona)
 - Ukrywanie rozszerzen na koniec listy + "Pokaz wszystkie"
 - Usuniety gradient na dole listy i animacja hover
+
+## 1.3.1
+- Przycisk "pokaz wszystkie" nie zamyka panelu (closemenu=none)
+- Menu 3 kropek: Pin to Toolbar, Pin to top, Move Up, Move Down, Hide w jednym bloku
+- Log diagnostyczny [extensions-list-sine] fit
