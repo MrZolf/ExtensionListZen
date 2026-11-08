@@ -38,10 +38,9 @@ JavaScript mods run in the browser's privileged UI context. Install this mod onl
 
 ## Installation
 
-1. Extract the ZIP.
-2. In Zen open **Settings → Sine Mods** and enable installing JS from unofficial sources.
-3. Install the mod with Sine's local/import option (or put the folder in Sine's mods directory), then restart Zen.
-4. Open the extensions panel.
+1. In Zen open **Settings → Sine Mods** and enable installing JS from unofficial sources.
+2. Paste repo link.
+3. Restart Zen
 
 ## Project files
 
