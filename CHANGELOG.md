@@ -33,3 +33,8 @@
 - Przycisk "pokaz wszystkie" nie zamyka panelu (closemenu=none)
 - Menu 3 kropek: Pin to Toolbar, Pin to top, Move Up, Move Down, Hide w jednym bloku
 - Log diagnostyczny [extensions-list-sine] fit
+
+## 1.4.0
+- Separatory w menu 3 kropek czyszczone wg realnej widocznosci (bez dubli)
+- Sortowanie: nazwa A-Z/Z-A, data dodania, najczesciej/ostatnio uzywane; trzy osobne listy; wlasna karta potwierdzenia
+- Licznik uzycia (klikniecia w panelu)

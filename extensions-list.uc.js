@@ -1,8 +1,9 @@
 /*
- * Extensions List for Zen Browser / Sine  (v1.3.0)
- *  - icon action bar (AMO + extension settings) + search field
- *  - pin to top of list / hide to the end (collapsible "show all")
- *  - forces the popup width with panel.sizeTo (CSS alone was not enough)
+ * Extensions List for Zen Browser / Sine  (v1.4.0)
+ *  - icon action bar (AMO, extension settings, sort) + search
+ *  - pin to top / hide at end (collapsible), sorted as three separate lists
+ *  - sorting: name, install date, usage (click counter) - with inline confirmation
+ *  - tidy context menu (separators never doubled)
  */
 (() => {
   "use strict";
@@ -10,22 +11,32 @@
   const MOD_ID = "extensions-list-sine";
   const PREF_PINNED = "extensions.list.sine.pinned";
   const PREF_HIDDEN = "extensions.list.sine.hidden";
+  const PREF_SORT = "extensions.list.sine.sort";
+  const PREF_USAGE = "extensions.list.sine.usage";
   const ITEM_SELECTOR = ".unified-extensions-item";
   const LIST_ID = "zen-site-data-addons";
   const SECTION_ID = "zen-site-data-section-addons";
   const PANEL_ID = "zen-unified-site-data-panel";
   const ACTIONS_ID = "extensions-list-actions";
   const SEARCH_ID = "extensions-list-search";
+  const CONFIRM_ID = "extensions-list-confirm";
+  const SORT_BTN_ID = "extensions-list-sort";
+  const SORT_MENU_ID = "extensions-list-sort-menu";
   const TOGGLE_ID = "extensions-list-hidden-toggle";
   const MENU_ID = "unified-extensions-context-menu";
   const PIN_ITEM_ID = "extensions-list-pin-menuitem";
   const HIDE_ITEM_ID = "extensions-list-hide-menuitem";
+  const SEP_ID = "extensions-list-sep-top";
   const AMO_URL = "https://addons.mozilla.org/en-GB/firefox/";
   const XHTML = "http://www.w3.org/1999/xhtml";
   const PANEL_WIDTH = 332;
+  const SORT_MODES = ["custom", "name-asc", "name-desc", "date-new", "date-old", "usage-most", "usage-recent"];
 
   if (window.__extensionsListSine?.installed) return;
-  const state = { installed: true, scheduled: false, addonManager: null, query: "", showHidden: false };
+  const state = {
+    installed: true, scheduled: false, addonManager: null,
+    query: "", showHidden: false, meta: new Map()
+  };
   window.__extensionsListSine = state;
 
   const log = (...a) => console.info(`[${MOD_ID}]`, ...a);
@@ -39,9 +50,22 @@
     unhide: "Przestań ukrywać",
     add: "Dodaj rozszerzenia",
     settings: "Ustawienia rozszerzeń",
+    sort: "Sortuj",
     search: "Szukaj rozszerzeń…",
     showAll: n => `Pokaż wszystkie (ukryte: ${n})`,
-    collapse: n => `Zwiń ukryte (${n})`
+    collapse: n => `Zwiń ukryte (${n})`,
+    confirmText: "Sortowanie zastąpi Twoją własną kolejność (Przesuń w górę / w dół). Przypięte, zwykłe i ukryte są sortowane osobno.",
+    confirmYes: "Sortuj",
+    confirmNo: "Anuluj",
+    modes: {
+      "custom": "Własna kolejność",
+      "name-asc": "Nazwa A–Z",
+      "name-desc": "Nazwa Z–A",
+      "date-new": "Data dodania: najnowsze",
+      "date-old": "Data dodania: najstarsze",
+      "usage-most": "Najczęściej używane",
+      "usage-recent": "Ostatnio używane"
+    }
   } : {
     pin: "Pin to top of list",
     unpin: "Unpin from top of list",
@@ -49,19 +73,38 @@
     unhide: "Stop hiding",
     add: "Add extensions",
     settings: "Extension settings",
+    sort: "Sort",
     search: "Search extensions…",
     showAll: n => `Show all (${n} hidden)`,
-    collapse: n => `Collapse hidden (${n})`
+    collapse: n => `Collapse hidden (${n})`,
+    confirmText: "Sorting will replace your custom order (Move Up / Move Down). Pinned, regular and hidden extensions are sorted as separate lists.",
+    confirmYes: "Sort",
+    confirmNo: "Cancel",
+    modes: {
+      "custom": "Custom order",
+      "name-asc": "Name A–Z",
+      "name-desc": "Name Z–A",
+      "date-new": "Date added: newest",
+      "date-old": "Date added: oldest",
+      "usage-most": "Most used",
+      "usage-recent": "Recently used"
+    }
   };
 
   /* ---------- prefs ---------- */
-  function readList(pref) {
+  function readJson(pref, fallback) {
     try {
-      const v = JSON.parse(Services.prefs.getStringPref(pref, "[]"));
-      return Array.isArray(v) ? v : [];
-    } catch (_) { return []; }
+      const v = JSON.parse(Services.prefs.getStringPref(pref, ""));
+      return v && typeof v === "object" ? v : fallback;
+    } catch (_) { return fallback; }
   }
-  const writeList = (pref, list) => Services.prefs.setStringPref(pref, JSON.stringify(list));
+  const readList = pref => { const v = readJson(pref, []); return Array.isArray(v) ? v : []; };
+  const writeJson = (pref, v) => Services.prefs.setStringPref(pref, JSON.stringify(v));
+  const getSortMode = () => {
+    const m = Services.prefs.getStringPref(PREF_SORT, "custom");
+    return SORT_MODES.includes(m) ? m : "custom";
+  };
+  const setSortMode = m => Services.prefs.setStringPref(PREF_SORT, m);
 
   function togglePinned(id) {
     const pinned = readList(PREF_PINNED);
@@ -69,9 +112,9 @@
     if (i >= 0) pinned.splice(i, 1);
     else {
       pinned.unshift(id);
-      writeList(PREF_HIDDEN, readList(PREF_HIDDEN).filter(x => x !== id)); // pin => unhide
+      writeJson(PREF_HIDDEN, readList(PREF_HIDDEN).filter(x => x !== id));
     }
-    writeList(PREF_PINNED, pinned);
+    writeJson(PREF_PINNED, pinned);
     refresh(true);
   }
   function toggleHidden(id) {
@@ -80,9 +123,9 @@
     if (i >= 0) hidden.splice(i, 1);
     else {
       hidden.push(id);
-      writeList(PREF_PINNED, readList(PREF_PINNED).filter(x => x !== id)); // hide => unpin
+      writeJson(PREF_PINNED, readList(PREF_PINNED).filter(x => x !== id));
     }
-    writeList(PREF_HIDDEN, hidden);
+    writeJson(PREF_HIDDEN, hidden);
     refresh(true);
   }
 
@@ -92,12 +135,10 @@
       || item.querySelector("[data-extensionid]")?.getAttribute("data-extensionid")
       || "";
   }
-
   function getName(item) {
     return (item.querySelector(".unified-extensions-item-name")?.textContent
       || item.getAttribute("label") || "").trim();
   }
-
   function getAddonManager() {
     if (!state.addonManager) {
       try {
@@ -107,6 +148,16 @@
       } catch (e) { console.error(`[${MOD_ID}] AddonManager unavailable`, e); }
     }
     return state.addonManager;
+  }
+
+  async function loadAddonMeta() {
+    try {
+      const addons = await getAddonManager()?.getAddonsByTypes(["extension"]);
+      for (const a of addons || []) {
+        state.meta.set(a.id, { installDate: a.installDate?.getTime?.() || 0 });
+      }
+      schedule();
+    } catch (e) { console.warn(`[${MOD_ID}] meta load failed`, e); }
   }
 
   async function ensureName(item) {
@@ -133,50 +184,89 @@
     } catch (_) {}
   }
 
-  /* ---------- state -> DOM (pinned / hidden / search) ---------- */
+  /* ---------- usage counter (clicks on extension buttons in this panel) ---------- */
+  function recordUsage(id) {
+    if (!id) return;
+    const usage = readJson(PREF_USAGE, {});
+    const u = usage[id] || { n: 0, last: 0 };
+    u.n += 1;
+    u.last = Date.now();
+    usage[id] = u;
+    writeJson(PREF_USAGE, usage);
+  }
+
+  /* ---------- sorting ---------- */
+  function makeComparator(mode, usage) {
+    const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+    const date = e => state.meta.get(e.id)?.installDate || 0;
+    const n = e => usage[e.id]?.n || 0;
+    const last = e => usage[e.id]?.last || 0;
+    switch (mode) {
+      case "name-asc": return byName;
+      case "name-desc": return (a, b) => -byName(a, b);
+      case "date-new": return (a, b) => date(b) - date(a) || byName(a, b);
+      case "date-old": return (a, b) => date(a) - date(b) || byName(a, b);
+      case "usage-most": return (a, b) => n(b) - n(a) || byName(a, b);
+      case "usage-recent": return (a, b) => last(b) - last(a) || byName(a, b);
+      default: return null;
+    }
+  }
+
+  /* ---------- state -> DOM (pinned / hidden / search / sort) ---------- */
   function applyState(list) {
     const pinned = readList(PREF_PINNED);
     const hidden = readList(PREF_HIDDEN);
     const q = state.query.trim().toLowerCase();
-    let matchIdx = 0, hiddenIdx = 0, hiddenCount = 0, lastMatch = null;
+    const mode = getSortMode();
+    const cmp = makeComparator(mode, readJson(PREF_USAGE, {}));
 
     list.toggleAttribute("data-ext-searching", !!q);
     list.toggleAttribute("data-ext-show-hidden", state.showHidden);
+    document.getElementById(SORT_BTN_ID)?.toggleAttribute("data-sorted", mode !== "custom");
+    document.getElementById(MENU_ID)?.toggleAttribute("data-ext-sorted", mode !== "custom");
 
-    for (const item of document.querySelectorAll(ITEM_SELECTOR)) {
+    const groups = { match: [], pinned: [], normal: [], hidden: [] };
+    document.querySelectorAll(ITEM_SELECTOR).forEach((item, dom) => {
       const id = getExtensionId(item);
+      const name = getName(item);
+      const matches = !!q && name.toLowerCase().includes(q);
       const isPinned = pinned.includes(id);
-      const matches = !!q && getName(item).toLowerCase().includes(q);
       const isHidden = hidden.includes(id) && !(q && matches);
+      const e = { item, id, name, dom, isPinned, matches, isHidden, pinIdx: pinned.indexOf(id) };
 
       for (let p = item.parentElement; p && p !== list; p = p.parentElement) {
         if (!p.hasAttribute("data-ext-flatten")) p.setAttribute("data-ext-flatten", "");
       }
+      groups[isHidden ? "hidden" : matches ? "match" : isPinned ? "pinned" : "normal"].push(e);
+    });
 
-      let order = 0;
-      if (isHidden) { order = 6000 + hiddenIdx++; hiddenCount++; }
-      else if (matches) { order = -5000 + matchIdx++; lastMatch = item; }
-      else if (isPinned) order = pinned.indexOf(id) - 1000;
+    const customCmp = (a, b) => (a.isPinned && b.isPinned ? a.pinIdx - b.pinIdx : a.dom - b.dom);
+    for (const g of Object.values(groups)) g.sort(cmp ? (a, b) => cmp(a, b) || a.dom - b.dom : customCmp);
 
-      item.toggleAttribute("data-ext-pinned", isPinned && !isHidden);
-      item.toggleAttribute("data-ext-hidden", isHidden);
-      item.toggleAttribute("data-ext-match", matches);
-      item.toggleAttribute("data-ext-last-match", false);
-      const o = String(order);
-      if (order === 0) item.style.removeProperty("order");
-      else if (item.style.order !== o) item.style.order = o;
-    }
-    lastMatch?.toggleAttribute("data-ext-last-match", true);
+    const setOrder = (e, order) => {
+      e.item.toggleAttribute("data-ext-pinned", e.isPinned && !e.isHidden);
+      e.item.toggleAttribute("data-ext-hidden", e.isHidden);
+      e.item.toggleAttribute("data-ext-match", e.matches);
+      e.item.toggleAttribute("data-ext-last-match", false);
+      if (order === null) e.item.style.removeProperty("order");
+      else if (e.item.style.order !== String(order)) e.item.style.order = String(order);
+    };
+    groups.match.forEach((e, i) => setOrder(e, -5000 + i));
+    groups.pinned.forEach((e, i) => setOrder(e, -1000 + i));
+    groups.normal.forEach((e, i) => setOrder(e, cmp ? i : null));
+    groups.hidden.forEach((e, i) => setOrder(e, 6000 + i));
+    groups.match.at(-1)?.item.toggleAttribute("data-ext-last-match", true);
 
     const toggle = document.getElementById(TOGGLE_ID);
     if (toggle) {
-      toggle.hidden = hiddenCount === 0 || !!q;
-      toggle.setAttribute("label", state.showHidden ? T.collapse(hiddenCount) : T.showAll(hiddenCount));
+      const count = groups.hidden.length;
+      toggle.hidden = count === 0 || !!q;
+      toggle.setAttribute("label", state.showHidden ? T.collapse(count) : T.showAll(count));
       toggle.toggleAttribute("data-expanded", state.showHidden);
     }
   }
 
-  /* ---------- header: action buttons + search ---------- */
+  /* ---------- header: action buttons, sort menu, confirm card, search ---------- */
   function makeButton(id, label, icon, onCommand) {
     const btn = document.createXULElement("toolbarbutton");
     btn.id = id;
@@ -202,16 +292,109 @@
     closePanel();
   }
 
+  const SORT_ICON = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="context-fill">' +
+    '<path d="M2 3h12v1.5H2zM2 7.25h8v1.5H2zM2 11.5h4V13H2z"/></svg>'
+  );
+
+  function buildSortMenu() {
+    let popup = document.getElementById(SORT_MENU_ID);
+    if (popup) return popup;
+    popup = document.createXULElement("menupopup");
+    popup.id = SORT_MENU_ID;
+    for (const mode of SORT_MODES) {
+      const mi = document.createXULElement("menuitem");
+      mi.setAttribute("type", "radio");
+      mi.setAttribute("name", "extlistsort");
+      mi.setAttribute("label", T.modes[mode]);
+      mi.dataset.mode = mode;
+      mi.addEventListener("command", () => requestSort(mode));
+      popup.append(mi);
+      if (mode === "custom") popup.append(document.createXULElement("menuseparator"));
+    }
+    popup.addEventListener("popupshowing", () => {
+      const cur = getSortMode();
+      for (const mi of popup.querySelectorAll("menuitem")) {
+        if (mi.dataset.mode === cur) mi.setAttribute("checked", "true");
+        else mi.removeAttribute("checked");
+      }
+    });
+    (document.getElementById("mainPopupSet") || document.documentElement).append(popup);
+    return popup;
+  }
+
+  function hideConfirm() {
+    const box = document.getElementById(CONFIRM_ID);
+    if (box) { box.hidden = true; box.removeAttribute("data-mode"); }
+    fitSoon(false);
+  }
+
+  function showConfirm(mode) {
+    const box = document.getElementById(CONFIRM_ID);
+    if (!box) return;
+    box.setAttribute("data-mode", mode);
+    box.querySelector(".ext-confirm-mode").textContent = T.modes[mode];
+    box.hidden = false;
+    fitSoon(false);
+  }
+
+  function requestSort(mode) {
+    if (mode === getSortMode()) return;
+    // Switching away from the custom order is the destructive step -> ask first.
+    if (mode !== "custom" && getSortMode() === "custom") showConfirm(mode);
+    else { hideConfirm(); setSortMode(mode); refresh(true); }
+  }
+
+  function buildConfirm() {
+    const box = document.createElementNS(XHTML, "div");
+    box.id = CONFIRM_ID;
+    box.hidden = true;
+
+    const text = document.createElementNS(XHTML, "div");
+    text.className = "ext-confirm-text";
+    text.textContent = T.confirmText;
+
+    const mode = document.createElementNS(XHTML, "div");
+    mode.className = "ext-confirm-mode";
+
+    const row = document.createElementNS(XHTML, "div");
+    row.className = "ext-confirm-actions";
+    const no = document.createElementNS(XHTML, "button");
+    no.type = "button";
+    no.className = "ext-confirm-no";
+    no.textContent = T.confirmNo;
+    no.addEventListener("click", hideConfirm);
+    const yes = document.createElementNS(XHTML, "button");
+    yes.type = "button";
+    yes.className = "ext-confirm-yes";
+    yes.textContent = T.confirmYes;
+    yes.addEventListener("click", () => {
+      const m = box.getAttribute("data-mode");
+      hideConfirm();
+      if (m && SORT_MODES.includes(m)) { setSortMode(m); refresh(true); }
+    });
+    row.append(no, yes);
+    box.append(mode, text, row);
+    return box;
+  }
+
   function ensureHeader() {
     const list = document.getElementById(LIST_ID);
     if (!list || !document.getElementById(SECTION_ID) || document.getElementById(ACTIONS_ID)) return;
+
+    const sortMenu = buildSortMenu();
+    const sortBtn = makeButton(SORT_BTN_ID, T.sort, SORT_ICON, () => {
+      sortMenu.openPopup(sortBtn, "after_start");
+    });
+    sortBtn.setAttribute("closemenu", "none");
 
     const bar = document.createXULElement("hbox");
     bar.id = ACTIONS_ID;
     bar.append(
       makeButton("extensions-list-add", T.add, "chrome://global/skin/icons/plus.svg", openAmo),
       makeButton("extensions-list-manage", T.settings, "chrome://global/skin/icons/settings.svg",
-        () => { BrowserAddonUI.openAddonsMgr("addons://list/extension"); closePanel(); })
+        () => { BrowserAddonUI.openAddonsMgr("addons://list/extension"); closePanel(); }),
+      sortBtn
     );
 
     const search = document.createElementNS(XHTML, "input");
@@ -221,10 +404,7 @@
     search.setAttribute("aria-label", T.search);
     search.autocomplete = "off";
     search.spellcheck = false;
-    search.addEventListener("input", () => {
-      state.query = search.value;
-      refresh(true);
-    });
+    search.addEventListener("input", () => { state.query = search.value; refresh(true); });
     search.addEventListener("keydown", e => {
       if (e.key === "Escape" && search.value) {
         e.stopPropagation();
@@ -242,13 +422,18 @@
     toggle.className = "subviewbutton";
     toggle.setAttribute("closemenu", "none");
     toggle.hidden = true;
-    toggle.addEventListener("command", () => {
-      state.showHidden = !state.showHidden;
-      refresh(true);
-    });
+    toggle.addEventListener("command", () => { state.showHidden = !state.showHidden; refresh(true); });
 
-    list.before(bar, search);
+    list.before(bar, search, buildConfirm());
     list.append(toggle);
+
+    // usage counter: any click on an extension's main button in this panel
+    list.addEventListener("click", e => {
+      if (e.button !== 0) return;
+      const btn = e.target.closest?.(".unified-extensions-item-action-button");
+      if (!btn || btn.disabled || btn.hasAttribute("disabled")) return;
+      recordUsage(getExtensionId(btn.closest(ITEM_SELECTOR)));
+    }, true);
   }
 
   /* ---------- popup size (CSS alone doesn't resize the native popup) ---------- */
@@ -266,7 +451,6 @@
     let h = Math.round(pr.height);
     if (!reset && fit.viewH != null) h = Math.round(fit.popupH + (vr.height - fit.viewH));
 
-    log("fit", { popup: [pr.width, pr.height], view: [vr.width, vr.height], margin: mx, target: [w, h], state: panel.state });
     if (Math.abs(w - pr.width) > 1 || Math.abs(h - pr.height) > 1) {
       try { panel.sizeTo(w, h); } catch (e) { console.warn(`[${MOD_ID}] sizeTo failed`, e); }
     }
@@ -275,8 +459,8 @@
   }
   const fitSoon = reset => requestAnimationFrame(() => requestAnimationFrame(() => fitPanel(reset)));
 
-  /* ---------- context menu entries ---------- */
-  function ensureMenuItem(menu, id, handler) {
+  /* ---------- context menu ---------- */
+  function ensureMenuItem(id, handler) {
     let entry = document.getElementById(id);
     if (!entry) {
       entry = document.createXULElement("menuitem");
@@ -289,9 +473,7 @@
     return entry;
   }
 
-  const SEP_ID = "extensions-list-sep-top";
-
-  /* Order: [permissions...] ─ Pin to Toolbar, Pin to top, Move Up, Move Down, Hide ─ Manage/Remove/Report */
+  /* Order: [permissions…] ─ Pin to Toolbar, Pin to top, Move Up, Move Down, Hide ─ Manage/Remove/Report */
   function arrangeMenu(menu, pin, hide) {
     let sep = document.getElementById(SEP_ID);
     if (!sep) {
@@ -310,7 +492,6 @@
     const anchor = q(".unified-extensions-context-menu-management-separator")
       || q("#unified-extensions-context-menu-manage-extension");
 
-    // Skip the DOM churn when the order is already right.
     const current = [...menu.children];
     const idx = wanted.map(n => current.indexOf(n));
     const inOrder = idx.every((v, i) => v >= 0 && (i === 0 || v === idx[i - 1] + 1));
@@ -322,24 +503,47 @@
     }
   }
 
+  /* Collapse leading / trailing / consecutive separators ourselves, based on what is really visible. */
+  function cleanSeparators(menu) {
+    const seps = [...menu.children].filter(c => c.localName === "menuseparator");
+    seps.forEach(s => s.removeAttribute("data-ext-sep-collapsed"));
+
+    const visible = el => !el.hidden && !el.collapsed && window.getComputedStyle(el).display !== "none";
+    let prevContent = false;
+    let lastKept = null;
+    for (const child of menu.children) {
+      if (!visible(child)) continue;
+      if (child.localName === "menuseparator") {
+        if (!prevContent) child.setAttribute("data-ext-sep-collapsed", "");
+        else { lastKept = child; prevContent = false; }
+      } else {
+        prevContent = true;
+        if (lastKept) lastKept = null;
+      }
+    }
+    lastKept?.setAttribute("data-ext-sep-collapsed", ""); // separator with nothing after it
+  }
+
   function onPopupShowing(event) {
     const menu = event.target;
     if (menu?.id !== MENU_ID) return;
 
-    const pin = ensureMenuItem(menu, PIN_ITEM_ID, togglePinned);
-    const hide = ensureMenuItem(menu, HIDE_ITEM_ID, toggleHidden);
+    const pin = ensureMenuItem(PIN_ITEM_ID, togglePinned);
+    const hide = ensureMenuItem(HIDE_ITEM_ID, toggleHidden);
     arrangeMenu(menu, pin, hide);
+    menu.toggleAttribute("data-ext-sorted", getSortMode() !== "custom");
 
     const item = menu.triggerNode?.closest?.(ITEM_SELECTOR);
     const id = menu.dataset?.extensionId || (item ? getExtensionId(item) : "");
-
     for (const e of [pin, hide]) {
       e.hidden = !id;
       if (id) e.setAttribute("data-ext-id", id);
     }
-    if (!id) return;
-    pin.setAttribute("label", readList(PREF_PINNED).includes(id) ? T.unpin : T.pin);
-    hide.setAttribute("label", readList(PREF_HIDDEN).includes(id) ? T.unhide : T.hide);
+    if (id) {
+      pin.setAttribute("label", readList(PREF_PINNED).includes(id) ? T.unpin : T.pin);
+      hide.setAttribute("label", readList(PREF_HIDDEN).includes(id) ? T.unhide : T.hide);
+    }
+    cleanSeparators(menu);
   }
 
   /* ---------- refresh loop ---------- */
@@ -360,9 +564,13 @@
   }
 
   function onPopupShown(event) {
-    if (event.target?.id === PANEL_ID) {
+    const t = event.target;
+    if (t?.id === PANEL_ID) {
+      loadAddonMeta();
       schedule();
       fitSoon(true);
+    } else if (t?.id === MENU_ID) {
+      cleanSeparators(t); // Firefox may have changed visibility after our popupshowing
     }
   }
   function onPopupHidden(event) {
@@ -371,12 +579,14 @@
     if (search) search.value = "";
     state.query = "";
     state.showHidden = false;
+    hideConfirm();
     fit.viewH = fit.popupH = null;
     refresh(false);
   }
 
   function init() {
     refresh(false);
+    loadAddonMeta();
     new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
     document.addEventListener("popupshowing", onPopupShowing, true);
     document.addEventListener("popupshown", onPopupShown, true);
