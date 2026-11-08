@@ -1,5 +1,5 @@
 /*
- * Extensions List - Zen Browser / Sine  (v1.6.0)
+ * Extensions List - Zen Browser / Sine  (v1.7.0)
  */
 
 /* ---------- Panel: ~40% wider ---------- */
@@ -76,11 +76,16 @@
   display: none !important;
 }
 /* sort icon: drawn as a mask so it always follows the theme's text colour */
-#extensions-list-sort .toolbarbutton-icon {
+#extensions-list-sort .toolbarbutton-icon,
+#extensions-list-manage .toolbarbutton-icon {
   display: block !important;
   background-color: currentColor !important;
   -webkit-mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20fill='black'%20d='M2%203h12v1.5H2zM2%207.25h8v1.5H2zM2%2011.5h4V13H2z'/></svg>") center / 16px 16px no-repeat !important;
   mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20fill='black'%20d='M2%203h12v1.5H2zM2%207.25h8v1.5H2zM2%2011.5h4V13H2z'/></svg>") center / 16px 16px no-repeat !important;
+}
+#extensions-list-manage .toolbarbutton-icon {
+  -webkit-mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20d='M2.5%205.5h3a2%202%200%201%201%204%200h3v2a2%202%200%201%201%200%204v2h-10z'%20fill='none'%20stroke='black'%20stroke-width='1.3'%20stroke-linejoin='round'/></svg>") center / 16px 16px no-repeat !important;
+  mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20d='M2.5%205.5h3a2%202%200%201%201%204%200h3v2a2%202%200%201%201%200%204v2h-10z'%20fill='none'%20stroke='black'%20stroke-width='1.3'%20stroke-linejoin='round'/></svg>") center / 16px 16px no-repeat !important;
 }
 
 /* ---------- Search field ---------- */
@@ -100,7 +105,7 @@
 }
 #extensions-list-search:focus {
   background: var(--ext-list-tile-hover) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ext-list-accent) 60%, transparent) !important;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ext-list-accent) 65%, transparent) !important;
 }
 
 /* ---------- List container: one flat flex column ---------- */
@@ -250,26 +255,47 @@
   margin-bottom: 8px !important;
 }
 
-/* ---------- Hidden extensions (collapsed until the chevron is pressed) ---------- */
-#zen-site-data-addons:not([data-ext-show-hidden]) .unified-extensions-item[data-ext-hidden] {
-  display: none !important;
+/* ---------- Hidden extensions: fold in/out smoothly ---------- */
+#zen-site-data-addons .unified-extensions-item[data-ext-hidden][data-ext-hidden] {
+  overflow: hidden !important;
+  transition: max-height 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+              margin-top 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.26s ease,
+              visibility 0s linear 0.34s !important;
 }
-#zen-site-data-addons .unified-extensions-item[data-ext-hidden] {
+#zen-site-data-addons:not([data-ext-show-hidden]) .unified-extensions-item[data-ext-hidden][data-ext-hidden] {
+  max-height: 0 !important;
+  margin-top: -2px !important; /* cancels the flex gap while folded */
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+#zen-site-data-addons[data-ext-show-hidden] .unified-extensions-item[data-ext-hidden][data-ext-hidden] {
+  max-height: 40px !important;
+  margin-top: 0 !important;
   opacity: 0.6 !important;
+  visibility: visible !important;
+  transition: max-height 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+              margin-top 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.3s ease 0.06s,
+              visibility 0s !important;
 }
 
 /* show / collapse hidden: a minimal chevron that flips */
 #extensions-list-hidden-toggle {
   order: 5000 !important;
   display: flex !important;
+  align-self: center !important;
   align-items: center !important;
   justify-content: center !important;
+  width: 26px !important;
+  min-width: 26px !important;
   height: 26px !important;
   min-height: 26px !important;
-  margin: 4px 0 2px !important;
+  margin: 4px 0 0 !important;
   padding: 0 !important;
   border: none !important;
-  border-radius: 8px !important;
+  border-radius: 50% !important;
   background: transparent !important;
   color: inherit !important;
   appearance: none !important;
@@ -278,7 +304,7 @@
 }
 #extensions-list-hidden-toggle[hidden] { display: none !important; }
 #extensions-list-hidden-toggle:hover {
-  background: var(--ext-list-tile) !important;
+  background: var(--ext-list-tile-hover) !important;
   opacity: 1 !important;
 }
 #extensions-list-hidden-toggle .toolbarbutton-text { display: none !important; }
@@ -381,4 +407,69 @@
 #unified-extensions-context-menu #unified-extensions-context-menu-move-widget-up,
 #unified-extensions-context-menu #unified-extensions-context-menu-move-widget-down {
   display: none !important; /* replaced by the drag handle */
+}
+
+/* ======================= v1.7.0 ======================= */
+
+/* "Manage" in the section header is redundant (the settings button does it) */
+#zen-site-data-manage-addons {
+  display: none !important;
+}
+
+/* tighter bottom edge before the Settings section */
+#zen-site-data-section-addons {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+  gap: 0 !important;
+}
+#zen-site-data-addons {
+  padding-block-end: 0 !important;
+  margin-block-end: 0 !important;
+}
+
+/* Zen's top buttons (share / screenshot / boost / bookmark) styled like the action bar */
+#zen-site-data-header {
+  gap: 6px !important;
+}
+#zen-site-data-header > toolbarbutton {
+  display: flex !important;
+  flex: 1 1 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: var(--ext-list-tile) !important;
+  color: inherit !important;
+  appearance: none !important;
+  transition: background-color 0.12s ease !important;
+}
+#zen-site-data-header > toolbarbutton::before,
+#zen-site-data-header > toolbarbutton::after {
+  content: none !important;
+  display: none !important; /* the squircle background Zen draws behind them */
+}
+#zen-site-data-header > toolbarbutton:not([disabled]):hover {
+  background: var(--ext-list-tile-hover) !important;
+}
+#zen-site-data-header > toolbarbutton:not([disabled]):active {
+  background: color-mix(in srgb, var(--ext-list-accent) 25%, transparent) !important;
+}
+#zen-site-data-header > toolbarbutton[disabled] {
+  opacity: 0.5 !important;
+}
+#zen-site-data-header > toolbarbutton .toolbarbutton-icon {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  -moz-context-properties: fill, stroke !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+#zen-site-data-header > toolbarbutton .toolbarbutton-text {
+  display: none !important;
 }

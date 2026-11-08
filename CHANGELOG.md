@@ -54,3 +54,10 @@
 - Alternatywne sklepy (preferences.json): checkbox + edytowalna lista linkow
 - Wysokosc listy = pelne wiersze; przyciski bez obwodek; minimalistyczna strzalka pokaz/zwin
 - Etykiety menu: Pin to Top / Unpin from Top / Hide / Unhide
+
+## 1.7.0
+- Puzzel w obrysie, AMO bez nawiasu, grubsza ramka wyszukiwarki
+- Strzalka pokaz/zwin: okragla podswietlona tylko wokol strzalki; plynna animacja zwijania/rozwijania z sledzeniem rozmiaru okienka i scrollem
+- Usuniety przycisk Manage w naglowku, mniejszy dolny margines listy
+- Gorne przyciski Zena w stylu paska akcji
+- README ze zrzutem ekranu

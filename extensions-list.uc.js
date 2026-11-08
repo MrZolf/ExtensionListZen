@@ -1,5 +1,5 @@
 /*
- * Extensions List for Zen Browser / Sine  (v1.6.0)
+ * Extensions List for Zen Browser / Sine  (v1.7.0)
  *  - icon action bar (AMO, extension settings, sort) + search
  *  - pin to top / hide at end (collapsible), sorted as three separate lists
  *  - sorting: name, install date, usage (click counter)
@@ -55,7 +55,7 @@
     hide: "Ukryj",
     unhide: "Odkryj",
     add: "Dodaj rozszerzenia",
-    addAmo: "Dodatki do Firefoksa (AMO)",
+    addAmo: "Dodatki do Firefoksa",
     settings: "Ustawienia rozszerzeń",
     sort: "Sortuj",
     search: "Szukaj zainstalowanych rozszerzeń…",
@@ -76,7 +76,7 @@
     hide: "Hide",
     unhide: "Unhide",
     add: "Add extensions",
-    addAmo: "Firefox Add-ons (AMO)",
+    addAmo: "Firefox Add-ons",
     settings: "Extension settings",
     sort: "Sort",
     search: "Search installed extensions…",
@@ -545,7 +545,7 @@
     bar.id = ACTIONS_ID;
     bar.append(
       addBtn,
-      makeButton("extensions-list-manage", T.settings, "chrome://mozapps/skin/extensions/extensionGeneric.svg",
+      makeButton("extensions-list-manage", T.settings, null,
         () => { BrowserAddonUI.openAddonsMgr("addons://list/extension"); closePanel(); }),
       sortBtn
     );
@@ -578,10 +578,14 @@
     toggle.hidden = true;
     toggle.addEventListener("command", () => {
       state.showHidden = !state.showHidden;
-      refresh(true);
+      refresh(false);
       if (state.showHidden) {
-        // bring the freshly revealed hidden extensions into view
-        setTimeout(() => toggle.scrollIntoView({ block: "start", behavior: "smooth" }), 120);
+        // ease the list down so the revealed rows come into view while they unfold
+        const lr = list.getBoundingClientRect();
+        const target = toggle.getBoundingClientRect().top - lr.top + list.scrollTop - 4;
+        trackFit(460, target);
+      } else {
+        trackFit(380);
       }
     });
 
@@ -632,6 +636,25 @@
     const pitch = first.getBoundingClientRect().height + 2; // row + 2px gap
     const rows = Math.max(3, Math.floor((window.innerHeight * 0.7) / pitch));
     list.style.setProperty("max-height", `${rows * pitch - 2}px`, "important");
+  }
+  /* Keep list height + popup size in step with a running CSS animation (optionally easing the scroll too). */
+  function trackFit(ms, scrollTo = null) {
+    const list = document.getElementById(LIST_ID);
+    const t0 = performance.now();
+    const startTop = list?.scrollTop || 0;
+    const step = now => {
+      const t = now - t0;
+      fitList();
+      fitPanel(false);
+      if (list && scrollTo !== null) {
+        const p = Math.min(1, t / ms);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const max = Math.max(0, list.scrollHeight - list.clientHeight);
+        list.scrollTop = Math.min(max, startTop + (scrollTo - startTop) * eased);
+      }
+      if (t < ms) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
   const fitSoon = reset => requestAnimationFrame(() => requestAnimationFrame(() => { fitList(); fitPanel(reset); }));
 

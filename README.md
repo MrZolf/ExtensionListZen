@@ -1,76 +1,53 @@
 # Extensions List for Zen Browser
 
-Sine mod that changes the unified extensions panel into a consistent vertical list, adds extension names, and keeps the panel scrollable.
+A [Sine](https://github.com/CosmoCreeper/Sine) mod that turns Zen's extensions panel into a clean, searchable, sortable list with real extension names.
+
+![Extensions List preview](preview.png)
 
 ## Features
 
-- Displays extension items in a vertical list in both Zen extension groups.
-- Reads the actual extension name through Firefox's `AddonManager` API.
-- Uses the extension ID already present on Zen's native extension item.
-- Keeps native extension action buttons and menu buttons in place.
-- Adds a name label without rebuilding or moving native toolbar items.
-- Watches the browser UI for dynamically inserted extension items.
-- Limits the panel body height and enables vertical scrolling.
-- Does not use external libraries, network requests, or third-party scripts.
+- **Vertical list** with the real name of every extension (both of Zen's extension groups), identical tiles for every type.
+- **Search** installed extensions – matches jump to the top, the rest is dimmed.
+- **Pin to Top** and **Hide** from the extension's three-dots menu. Hidden extensions fold away under a small chevron that expands them with an animation.
+- **Custom order by drag & drop** – grab the handle that appears next to the three dots; the rows move live while you drag.
+- **Sorting** (name A–Z / Z–A, date added, most used, recently used). Pinned, regular and hidden extensions are sorted as three separate lists; only extensions that are in the list are affected, not the ones pinned to the browser toolbar.
+- **Action bar**: add extensions (opens Firefox Add-ons, or a menu with alternative stores), extension settings (`about:addons`) and sort.
+- Tidied three-dots menu (Pin to Toolbar → Pin to Top → Hide, no doubled separators).
+- Wider panel, list height snapped to whole rows, no bottom fade, no hover bounce, Zen's top buttons restyled to match.
+- Texts follow the browser language (Polish or English).
+
+## Settings
+
+Open the mod's settings in Sine:
+
+| Option | Description |
+| --- | --- |
+| Show alternative stores in the + button menu | When enabled, the **+** button opens a menu with Firefox Add-ons and your own links. When disabled it opens Firefox Add-ons directly. |
+| Alternative store links | `Name\|URL; Name\|URL; …` – edit, remove or add links. Only `http(s)://` and `about:` URLs are accepted. Default: `Zen Mods\|https://zen-browser.app/mods/; Sine Mods\|about:preferences#sineMods`. |
+
+Everything else (pinned, hidden, custom order, sort mode, usage counters) is stored in preferences under `extensions.list.sine.*`.
+
+> "Most used" and "recently used" count clicks on an extension's main button **inside this panel**, starting from the moment the mod is installed.
 
 ## Requirements
 
 - Zen Browser
-- Sine
-- Sine setting **Allow installing JS from unofficial sources** enabled
+- Sine, with **Allow installing JS from unofficial sources** enabled
 
 JavaScript mods run in the browser's privileged UI context. Install this mod only if you trust its source and have reviewed its code.
 
 ## Installation
 
 1. Extract the ZIP.
-2. In Zen, open **Settings → Sine Mods**.
-3. Enable **Allow installing JS from unofficial sources** (the wording may vary by Sine version).
-4. Install the mod using Sine's local/import option if available, or place the mod folder in the Sine mods directory according to your installed Sine version.
-5. Restart Zen Browser.
-6. Open the unified extensions panel and check both the upper and lower extension groups.
-
-If your Sine version only installs mods from a URL, put this folder in a Git repository and install the repository URL through Sine.
+2. In Zen open **Settings → Sine Mods** and enable installing JS from unofficial sources.
+3. Install the mod with Sine's local/import option (or put the folder in Sine's mods directory), then restart Zen.
+4. Open the extensions panel.
 
 ## Project files
 
-- `theme.json` - Sine metadata and script registration.
-- `extensions-list.uc.js` - privileged browser-chrome script. Resolves extension names and adds labels.
-- `userChrome.css` - list layout, row styling, and scroll behavior.
-- `README.md` - this guide.
-
-## Troubleshooting
-
-### Names do not appear
-
-Open Browser Toolbox → Console and look for messages prefixed with `[extensions-list-sine]`.
-
-The script uses the `extension-id` attribute on each native `toolbaritem.unified-extensions-item` and resolves the name through `AddonManager.getAddonByID()`.
-
-### Script does not run
-
-Check that:
-- JavaScript mods from unofficial sources are enabled in Sine.
-- The script is listed in `theme.json`.
-- The script file name matches the key under `scripts`.
-- Zen has been fully restarted after installation.
-
-### Panel still clips
-
-The CSS makes `#zen-site-data-addons` the bounded scroll region (`max-height: 70vh; overflow-y: auto`). If your Zen build uses a different wrapper for the panel body, inspect that element in Browser Toolbox and adjust the selector in `userChrome.css`.
-
-## Compatibility note
-
-The mod targets the DOM structure observed in the user's Zen Browser panel:
-- `#zen-site-data-addons`
-- `#unified-extensions-area`
-- `#overflowed-extensions-list`
-- `.unified-extensions-list`
-- `toolbaritem.unified-extensions-item`
-- `extension-id`
-
-Zen changes its internal browser UI between releases. If these selectors or the extension ID attribute change, the mod may need an update.
-
-## Uninstall
-
-Disable or remove **Extensions List** in Sine and restart Zen. The mod does not alter extension settings or persistent browser data.
+- `theme.json` – Sine metadata and script registration.
+- `preferences.json` – the mod's settings (alternative stores).
+- `extensions-list.uc.js` – privileged browser script (names, pin/hide, drag & drop, sorting, search, menus).
+- `userChrome.css` – layout and styling.
+- `preview.png` – screenshot used above.
+- `CHANGELOG.md` – version history.
