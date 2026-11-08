@@ -1,5 +1,5 @@
 /*
- * Extensions List for Zen Browser / Sine  (v1.5.0)
+ * Extensions List for Zen Browser / Sine  (v1.6.0)
  *  - icon action bar (AMO, extension settings, sort) + search
  *  - pin to top / hide at end (collapsible), sorted as three separate lists
  *  - sorting: name, install date, usage (click counter)
@@ -29,6 +29,11 @@
   const HIDE_ITEM_ID = "extensions-list-hide-menuitem";
   const SEP_ID = "extensions-list-sep-top";
   const AMO_URL = "https://addons.mozilla.org/en-GB/firefox/";
+  const ADD_MENU_ID = "extensions-list-add-menu";
+  // Mod settings (preferences.json -> Sine settings UI)
+  const PREF_ALT_ENABLED = "mod.extensions-list.show_alt_stores";
+  const PREF_ALT_STORES = "mod.extensions-list.alt_stores";
+  const DEFAULT_STORES = "Zen Mods|https://zen-browser.app/mods/; Sine Mods|about:preferences#sineMods";
   const XHTML = "http://www.w3.org/1999/xhtml";
   const PANEL_WIDTH = 332;
   const SORT_MODES = ["custom", "name-asc", "name-desc", "date-new", "date-old", "usage-most", "usage-recent"];
@@ -45,14 +50,15 @@
   /* ---------- i18n (browser language: pl / en) ---------- */
   const isPl = (Services.locale.appLocaleAsBCP47 || "en").toLowerCase().startsWith("pl");
   const T = isPl ? {
-    pin: "Przypnij na początek listy",
-    unpin: "Odepnij z początku listy",
-    hide: "Ukryj na końcu listy",
-    unhide: "Przestań ukrywać",
+    pin: "Przypnij na górze",
+    unpin: "Odepnij z góry",
+    hide: "Ukryj",
+    unhide: "Odkryj",
     add: "Dodaj rozszerzenia",
+    addAmo: "Dodatki do Firefoksa (AMO)",
     settings: "Ustawienia rozszerzeń",
     sort: "Sortuj",
-    search: "Szukaj rozszerzeń…",
+    search: "Szukaj zainstalowanych rozszerzeń…",
     showAll: n => `Pokaż wszystkie (ukryte: ${n})`,
     collapse: n => `Zwiń ukryte (${n})`,
     modes: {
@@ -65,14 +71,15 @@
       "usage-recent": "Ostatnio używane"
     }
   } : {
-    pin: "Pin to top of list",
-    unpin: "Unpin from top of list",
-    hide: "Hide at end of list",
-    unhide: "Stop hiding",
+    pin: "Pin to Top",
+    unpin: "Unpin from Top",
+    hide: "Hide",
+    unhide: "Unhide",
     add: "Add extensions",
+    addAmo: "Firefox Add-ons (AMO)",
     settings: "Extension settings",
     sort: "Sort",
-    search: "Search extensions…",
+    search: "Search installed extensions…",
     showAll: n => `Show all (${n} hidden)`,
     collapse: n => `Collapse hidden (${n})`,
     modes: {
@@ -218,7 +225,6 @@
     list.toggleAttribute("data-ext-searching", !!q);
     list.toggleAttribute("data-ext-show-hidden", state.showHidden);
     list.toggleAttribute("data-ext-sorted", mode !== "custom");
-    document.getElementById(SORT_BTN_ID)?.toggleAttribute("data-sorted", mode !== "custom");
 
     const groups = { match: [], pinned: [], normal: [], hidden: [] };
     list.querySelectorAll(ITEM_SELECTOR).forEach((item, dom) => {
@@ -255,7 +261,7 @@
     };
     groups.match.forEach((e, i) => setOrder(e, -5000 + i));
     groups.pinned.forEach((e, i) => setOrder(e, -1000 + i));
-    groups.normal.forEach((e, i) => setOrder(e, cmp ? i : null));
+    groups.normal.forEach((e, i) => setOrder(e, i));
     groups.hidden.forEach((e, i) => setOrder(e, 6000 + i));
     groups.match.at(-1)?.item.toggleAttribute("data-ext-last-match", true);
 
@@ -263,7 +269,9 @@
     if (toggle) {
       const count = groups.hidden.length;
       toggle.hidden = count === 0 || !!q;
-      toggle.setAttribute("label", state.showHidden ? T.collapse(count) : T.showAll(count));
+      const tip = state.showHidden ? T.collapse(count) : T.showAll(count);
+      toggle.setAttribute("tooltiptext", tip);
+      toggle.setAttribute("aria-label", tip);
       toggle.toggleAttribute("data-expanded", state.showHidden);
     }
   }
@@ -273,37 +281,85 @@
     const btn = document.createXULElement("toolbarbutton");
     btn.id = id;
     btn.className = "subviewbutton subviewbutton-iconic";
-    btn.setAttribute("image", icon);
+    if (icon) btn.setAttribute("image", icon);
     btn.setAttribute("tooltiptext", label);
     btn.setAttribute("aria-label", label);
-    btn.addEventListener("command", onCommand);
+    btn.addEventListener("command", () => onCommand(btn));
     return btn;
   }
 
   const getPanel = () => document.getElementById(PANEL_ID);
   const closePanel = () => getPanel()?.hidePopup?.();
 
-  function openAmo() {
+  function openUrl(url) {
     try {
-      openTrustedLinkIn(AMO_URL, "tab");
+      openTrustedLinkIn(url, "tab");
     } catch (_) {
-      gBrowser.selectedTab = gBrowser.addTab(AMO_URL, {
+      gBrowser.selectedTab = gBrowser.addTab(url, {
         triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal()
       });
     }
     closePanel();
   }
 
-  const SORT_ICON = "data:image/svg+xml," + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="context-fill">' +
-    '<path d="M2 3h12v1.5H2zM2 7.25h8v1.5H2zM2 11.5h4V13H2z"/></svg>'
-  );
+  function getAltStores() {
+    try {
+      if (!Services.prefs.getBoolPref(PREF_ALT_ENABLED, false)) return [];
+      const raw = Services.prefs.getStringPref(PREF_ALT_STORES, DEFAULT_STORES);
+      return raw.split(/[;\n]+/).map(s => s.trim()).filter(Boolean).map(s => {
+        const i = s.indexOf("|");
+        const name = i > 0 ? s.slice(0, i).trim() : "";
+        const url = (i > 0 ? s.slice(i + 1) : s).trim();
+        return { name: name || url, url };
+      }).filter(s => /^(https?:\/\/|about:)/i.test(s.url));
+    } catch (_) { return []; }
+  }
+
+  /* A popup that closes when its button is pressed again. */
+  function prepareToggleMenu(popup) {
+    popup.setAttribute("consumeoutsideclicks", "true");
+    popup.addEventListener("popuphidden", () => { popup._hiddenAt = performance.now(); });
+  }
+  function toggleMenu(popup, anchor) {
+    if (popup.state === "open" || popup.state === "showing") { popup.hidePopup(); return; }
+    if (performance.now() - (popup._hiddenAt || 0) < 300) return; // this very click just closed it
+    popup.openPopup(anchor, "after_start");
+  }
+
+  function onAddClick(btn) {
+    const stores = getAltStores();
+    if (!stores.length) { openUrl(AMO_URL); return; }
+
+    let popup = document.getElementById(ADD_MENU_ID);
+    if (!popup) {
+      popup = document.createXULElement("menupopup");
+      popup.id = ADD_MENU_ID;
+      prepareToggleMenu(popup);
+      (document.getElementById("mainPopupSet") || document.documentElement).append(popup);
+    }
+    if (popup.state === "open" || popup.state === "showing") { popup.hidePopup(); return; }
+    if (performance.now() - (popup._hiddenAt || 0) < 300) return;
+
+    popup.replaceChildren();
+    const add = (label, url) => {
+      const mi = document.createXULElement("menuitem");
+      mi.setAttribute("label", label);
+      mi.setAttribute("tooltiptext", url);
+      mi.addEventListener("command", () => openUrl(url));
+      popup.append(mi);
+    };
+    add(T.addAmo, AMO_URL);
+    popup.append(document.createXULElement("menuseparator"));
+    for (const s of stores) add(s.name, s.url);
+    popup.openPopup(btn, "after_start");
+  }
 
   function buildSortMenu() {
     let popup = document.getElementById(SORT_MENU_ID);
     if (popup) return popup;
     popup = document.createXULElement("menupopup");
     popup.id = SORT_MENU_ID;
+    prepareToggleMenu(popup);
     for (const mode of SORT_MODES) {
       const mi = document.createXULElement("menuitem");
       mi.setAttribute("type", "radio");
@@ -353,72 +409,112 @@
     }
   }
 
-  function clearDropMarks(list) {
-    list.querySelectorAll("[data-ext-drop]").forEach(i => i.removeAttribute("data-ext-drop"));
-  }
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-  function updateDropTarget(drag, list) {
-    clearDropMarks(list);
-    const items = groupItems(list, drag.group);
-    let target = null, pos = "before";
-    for (const it of items) {
-      const r = it.getBoundingClientRect();
-      target = it;
-      if (drag.lastY < r.top + r.height / 2) { pos = "before"; break; }
-      pos = "after";
+  function resetDragVisuals(list) {
+    for (const it of list.querySelectorAll("[data-ext-shift], [data-ext-dragging], [data-ext-settling]")) {
+      it.removeAttribute("data-ext-shift");
+      it.removeAttribute("data-ext-dragging");
+      it.removeAttribute("data-ext-settling");
+      it.style.removeProperty("--ext-shift");
     }
-    drag.target = target;
-    drag.pos = pos;
-    if (target && target !== drag.item) target.setAttribute("data-ext-drop", pos);
-  }
-
-  function commitDrag(drag, list) {
-    const { item, target, pos, group } = drag;
-    if (!target || target === item) return;
-    const ids = groupItems(list, group).map(getExtensionId).filter(Boolean);
-    const dragged = getExtensionId(item);
-    const from = ids.indexOf(dragged);
-    if (from < 0) return;
-    ids.splice(from, 1);
-    let to = ids.indexOf(getExtensionId(target));
-    if (to < 0) return;
-    if (pos === "after") to++;
-    ids.splice(to, 0, dragged);
-    if (group === "pinned") {
-      writeJson(PREF_PINNED, [...ids, ...readList(PREF_PINNED).filter(x => !ids.includes(x))]);
-    } else {
-      writeJson(PREF_ORDER, [...ids, ...readList(PREF_ORDER).filter(x => !ids.includes(x))]);
-    }
+    list.removeAttribute("data-ext-dragging");
   }
 
   function startDrag(e, handle, list) {
-    if (e.button !== 0 || getSortMode() !== "custom" || state.query.trim()) return;
+    if (e.button !== 0 || getSortMode() !== "custom" || state.query.trim() || state.drag) return;
     const item = handle.closest(ITEM_SELECTOR);
     if (!item) return;
+    const group = groupOf(item);
+    const items = groupItems(list, group);
+    const from = items.indexOf(item);
+    if (from < 0 || items.length < 2) return;
     e.preventDefault();
 
-    const drag = { item, group: groupOf(item), target: null, pos: "before", lastY: e.clientY, timer: null };
+    // positions in scroll-content coordinates (stable while items are only translated)
+    const lr = list.getBoundingClientRect();
+    const slots = items.map(it => {
+      const r = it.getBoundingClientRect();
+      return { top: r.top - lr.top + list.scrollTop, h: r.height };
+    });
+    const drag = {
+      item, items, group, from, to: from, slots,
+      startY: e.clientY, startScroll: list.scrollTop, lastY: e.clientY,
+      minDy: slots[0].top - slots[from].top,
+      maxDy: slots.at(-1).top - slots[from].top,
+      timer: null, settling: false
+    };
     state.drag = drag;
     item.setAttribute("data-ext-dragging", "");
     list.setAttribute("data-ext-dragging", "");
     try { handle.setPointerCapture(e.pointerId); } catch (_) {}
 
-    const onMove = ev => { drag.lastY = ev.clientY; updateDropTarget(drag, list); };
-    const finish = commit => {
+    const setShift = (el, px) => {
+      el.style.setProperty("--ext-shift", `${px}px`);
+      if (el !== item) el.toggleAttribute("data-ext-shift", px !== 0);
+    };
+
+    const update = () => {
+      const dy = clamp(drag.lastY - drag.startY + (list.scrollTop - drag.startScroll), drag.minDy, drag.maxDy);
+      setShift(item, dy);
+
+      // slot nearest to the dragged row's centre
+      const center = slots[from].top + dy + slots[from].h / 2;
+      let to = from, best = Infinity;
+      slots.forEach((s, i) => {
+        const d = Math.abs(s.top + s.h / 2 - center);
+        if (d < best) { best = d; to = i; }
+      });
+      drag.to = to;
+
+      items.forEach((it, i) => {
+        if (it === item) return;
+        let shift = 0;
+        if (to > from && i > from && i <= to) shift = slots[i - 1].top - slots[i].top;
+        else if (to < from && i >= to && i < from) shift = slots[i + 1].top - slots[i].top;
+        setShift(it, shift);
+      });
+    };
+
+    const detach = () => {
       clearInterval(drag.timer);
       handle.removeEventListener("pointermove", onMove);
       handle.removeEventListener("pointerup", onUp);
       handle.removeEventListener("pointercancel", onCancel);
       try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
-      if (commit) commitDrag(drag, list);
-      clearDropMarks(list);
-      item.removeAttribute("data-ext-dragging");
-      list.removeAttribute("data-ext-dragging");
+    };
+    const done = commit => {
+      resetDragVisuals(list);
       state.drag = null;
       if (commit) refresh(true);
     };
-    const onUp = () => finish(true);
-    const onCancel = () => finish(false);
+    const onMove = ev => { drag.lastY = ev.clientY; update(); };
+    const onCancel = () => { detach(); done(false); };
+    const onUp = () => {
+      detach();
+      const { to } = drag;
+      if (to === from) {          // glide back, nothing to save
+        item.setAttribute("data-ext-settling", "");
+        setShift(item, 0);
+        setTimeout(() => done(false), 170);
+        return;
+      }
+      // glide into the target slot, then persist
+      item.setAttribute("data-ext-settling", "");
+      setShift(item, slots[to].top - slots[from].top);
+      setTimeout(() => {
+        const ids = items.map(getExtensionId).filter(Boolean);
+        const dragged = getExtensionId(item);
+        ids.splice(ids.indexOf(dragged), 1);
+        ids.splice(to, 0, dragged);
+        if (group === "pinned") {
+          writeJson(PREF_PINNED, [...ids, ...readList(PREF_PINNED).filter(x => !ids.includes(x))]);
+        } else {
+          writeJson(PREF_ORDER, [...ids, ...readList(PREF_ORDER).filter(x => !ids.includes(x))]);
+        }
+        done(true);
+      }, 170);
+    };
 
     handle.addEventListener("pointermove", onMove);
     handle.addEventListener("pointerup", onUp);
@@ -426,13 +522,13 @@
 
     // auto-scroll near the list edges
     drag.timer = setInterval(() => {
-      const lr = list.getBoundingClientRect();
-      if (drag.lastY < lr.top + 28) list.scrollTop -= 10;
-      else if (drag.lastY > lr.bottom - 28) list.scrollTop += 10;
+      const r = list.getBoundingClientRect();
+      if (drag.lastY < r.top + 28) list.scrollTop -= 10;
+      else if (drag.lastY > r.bottom - 28) list.scrollTop += 10;
       else return;
-      updateDropTarget(drag, list);
+      update();
     }, 30);
-    updateDropTarget(drag, list);
+    update();
   }
 
   function ensureHeader() {
@@ -440,16 +536,16 @@
     if (!list || !document.getElementById(SECTION_ID) || document.getElementById(ACTIONS_ID)) return;
 
     const sortMenu = buildSortMenu();
-    const sortBtn = makeButton(SORT_BTN_ID, T.sort, SORT_ICON, () => {
-      sortMenu.openPopup(sortBtn, "after_start");
-    });
+    const sortBtn = makeButton(SORT_BTN_ID, T.sort, null, btn => toggleMenu(sortMenu, btn));
     sortBtn.setAttribute("closemenu", "none");
+    const addBtn = makeButton("extensions-list-add", T.add, "chrome://global/skin/icons/plus.svg", onAddClick);
+    addBtn.setAttribute("closemenu", "none");
 
     const bar = document.createXULElement("hbox");
     bar.id = ACTIONS_ID;
     bar.append(
-      makeButton("extensions-list-add", T.add, "chrome://global/skin/icons/plus.svg", openAmo),
-      makeButton("extensions-list-manage", T.settings, "chrome://global/skin/icons/settings.svg",
+      addBtn,
+      makeButton("extensions-list-manage", T.settings, "chrome://mozapps/skin/extensions/extensionGeneric.svg",
         () => { BrowserAddonUI.openAddonsMgr("addons://list/extension"); closePanel(); }),
       sortBtn
     );
@@ -478,6 +574,7 @@
     toggle.id = TOGGLE_ID;
     toggle.className = "subviewbutton";
     toggle.setAttribute("closemenu", "none");
+    toggle.setAttribute("label", "");
     toggle.hidden = true;
     toggle.addEventListener("command", () => {
       state.showHidden = !state.showHidden;
@@ -526,7 +623,17 @@
     fit.viewH = vr.height;
     fit.popupH = h;
   }
-  const fitSoon = reset => requestAnimationFrame(() => requestAnimationFrame(() => fitPanel(reset)));
+  /* Make the list's height a whole number of rows so the last visible row is never cut in half. */
+  function fitList() {
+    const list = document.getElementById(LIST_ID);
+    if (!list) return;
+    const first = [...list.querySelectorAll(ITEM_SELECTOR)].find(i => i.getBoundingClientRect().height > 0);
+    if (!first) { list.style.removeProperty("max-height"); return; }
+    const pitch = first.getBoundingClientRect().height + 2; // row + 2px gap
+    const rows = Math.max(3, Math.floor((window.innerHeight * 0.7) / pitch));
+    list.style.setProperty("max-height", `${rows * pitch - 2}px`, "important");
+  }
+  const fitSoon = reset => requestAnimationFrame(() => requestAnimationFrame(() => { fitList(); fitPanel(reset); }));
 
   /* ---------- context menu ---------- */
   function ensureMenuItem(id, handler) {
@@ -623,6 +730,7 @@
       ensureHeader();
       ensureHandles(list);
       if (!state.drag) applyState(list);
+      fitList();
     }
     if (resize === true) fitSoon(false);
   }

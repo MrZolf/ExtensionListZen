@@ -45,3 +45,12 @@
 - Uchwyt do przeciagania zamiast Move Up/Down (wlasna kolejnosc w prefie)
 - Usuniete ostrzezenie o sortowaniu
 - "Pokaz wszystkie" przewija do ukrytych
+
+## 1.6.0
+- Szerokosc: --panel-width:auto + ::part(content) auto
+- Przeciaganie dziala tez dla zwyklych rozszerzen; zywa animacja (wiersz podaza za kursorem)
+- Ikony sortowania/strzalki jako maski (kolor motywu); ikona ustawien: puzzel
+- Menu sortowania/dodawania zamyka sie ponownym kliknieciem
+- Alternatywne sklepy (preferences.json): checkbox + edytowalna lista linkow
+- Wysokosc listy = pelne wiersze; przyciski bez obwodek; minimalistyczna strzalka pokaz/zwin
+- Etykiety menu: Pin to Top / Unpin from Top / Hide / Unhide

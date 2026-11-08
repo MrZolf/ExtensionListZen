@@ -1,5 +1,5 @@
 /*
- * Extensions List - Zen Browser / Sine  (v1.1.0)
+ * Extensions List - Zen Browser / Sine  (v1.6.0)
  */
 
 /* ---------- Panel: ~40% wider ---------- */
@@ -8,8 +8,9 @@
   --ext-list-accent: var(--zen-primary-color, AccentColor);
   --ext-list-tile: color-mix(in srgb, currentColor 7%, transparent);
   --ext-list-tile-hover: color-mix(in srgb, currentColor 14%, transparent);
+  /* Zen's ::part(content) uses `width: var(--panel-width)` which clips the wider content */
+  --panel-width: auto !important;
 }
-/* inner wrappers: fixed content width */
 #zen-unified-site-data-panel > panelmultiview,
 #zen-unified-site-data-panel .panel-viewcontainer,
 #zen-unified-site-data-panel .panel-viewstack,
@@ -19,8 +20,6 @@
   max-width: var(--ext-list-width) !important;
   box-sizing: border-box !important;
 }
-/* Zen's shadow part has `width: var(--panel-width)` + `overflow: clip` + its own padding;
-   let it size to the content (332px + padding) instead of clipping it. */
 #zen-unified-site-data-panel::part(content) {
   width: auto !important;
   min-width: 0 !important;
@@ -33,7 +32,7 @@
   display: none !important;
 }
 
-/* ---------- Action bar (icon-only: + / settings) ---------- */
+/* ---------- Action bar (icon-only, borderless) ---------- */
 #extensions-list-actions {
   display: flex !important;
   flex-direction: row !important;
@@ -52,16 +51,15 @@
   height: 34px !important;
   margin: 0 !important;
   padding: 0 !important;
+  border: none !important;
   border-radius: 8px !important;
-  border: 1px solid color-mix(in srgb, currentColor 12%, transparent) !important;
   background: var(--ext-list-tile) !important;
   color: inherit !important;
   appearance: none !important;
-  transition: background-color 0.12s ease, border-color 0.12s ease !important;
+  transition: background-color 0.12s ease !important;
 }
 #extensions-list-actions > toolbarbutton:hover {
   background: var(--ext-list-tile-hover) !important;
-  border-color: color-mix(in srgb, var(--ext-list-accent) 55%, transparent) !important;
 }
 #extensions-list-actions > toolbarbutton:active {
   background: color-mix(in srgb, var(--ext-list-accent) 25%, transparent) !important;
@@ -77,27 +75,52 @@
 #extensions-list-actions > toolbarbutton .toolbarbutton-text {
   display: none !important;
 }
+/* sort icon: drawn as a mask so it always follows the theme's text colour */
+#extensions-list-sort .toolbarbutton-icon {
+  display: block !important;
+  background-color: currentColor !important;
+  -webkit-mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20fill='black'%20d='M2%203h12v1.5H2zM2%207.25h8v1.5H2zM2%2011.5h4V13H2z'/></svg>") center / 16px 16px no-repeat !important;
+  mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20fill='black'%20d='M2%203h12v1.5H2zM2%207.25h8v1.5H2zM2%2011.5h4V13H2z'/></svg>") center / 16px 16px no-repeat !important;
+}
 
-/* ---------- List container: one flat flex column, with scroll gutter ---------- */
+/* ---------- Search field ---------- */
+#extensions-list-search {
+  display: block !important;
+  width: 100% !important;
+  height: 32px !important;
+  margin: 0 0 8px !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: var(--ext-list-tile) !important;
+  color: inherit !important;
+  font-size: 12px !important;
+  outline: none !important;
+}
+#extensions-list-search:focus {
+  background: var(--ext-list-tile-hover) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ext-list-accent) 60%, transparent) !important;
+}
+
+/* ---------- List container: one flat flex column ---------- */
 #zen-site-data-addons {
   display: flex !important;
   flex-direction: column !important;
   flex-wrap: nowrap !important;
   align-items: stretch !important;
   gap: 2px !important;
-  max-height: 70vh !important;
+  max-height: 70vh !important; /* JS snaps it to a whole number of rows */
   overflow-x: hidden !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
   scrollbar-width: thin !important;
   scrollbar-gutter: stable !important;
-  padding-inline: 0 8px !important;   /* scrollbar never touches the tiles */
+  scroll-snap-type: y proximity !important;
+  padding-inline: 0 8px !important;
   box-sizing: border-box !important;
   width: 100% !important;
 }
-
-/* Intermediate containers are flattened (JS tags them), so `order` works
-   across normal / overflowed / non-widget extension groups. */
 #zen-site-data-addons [data-ext-flatten],
 #zen-site-data-addons #unified-extensions-area,
 #zen-site-data-addons #overflowed-extensions-list,
@@ -115,8 +138,8 @@
   padding: 0 !important;
   background: transparent !important;
   box-sizing: border-box !important;
+  scroll-snap-align: start !important;
 }
-
 #zen-site-data-addons .unified-extensions-item-row-wrapper {
   display: flex !important;
   flex-direction: row !important;
@@ -133,7 +156,6 @@
 #zen-site-data-addons .unified-extensions-item-row-wrapper:hover {
   background: var(--ext-list-tile-hover) !important;
 }
-
 #zen-site-data-addons .unified-extensions-item-action-button {
   display: flex !important;
   flex: 1 1 auto !important;
@@ -148,7 +170,6 @@
   padding: 0 8px !important;
   background: transparent !important;
   border: none !important;
-  /* disabled ("can't read data on this site") must look like the others */
   opacity: 1 !important;
   color: inherit !important;
 }
@@ -160,13 +181,11 @@
 #zen-site-data-addons .unified-extensions-item-action-button:hover {
   background: transparent !important;
 }
-
 #zen-site-data-addons .unified-extensions-item-icon,
 #zen-site-data-addons .toolbarbutton-badge-stack {
   flex: 0 0 auto !important;
   margin: 0 !important;
 }
-
 #zen-site-data-addons .unified-extensions-item-contents {
   display: flex !important;
   flex: 1 1 auto !important;
@@ -192,7 +211,6 @@
 #zen-site-data-addons .unified-extensions-item-action-button > .toolbarbutton-text {
   display: none !important;
 }
-
 #zen-site-data-addons .unified-extensions-item-menu-button {
   display: flex !important;
   flex: 0 0 30px !important;
@@ -204,7 +222,6 @@
   justify-content: center !important;
   background: transparent !important;
 }
-
 #zen-site-data-addons unified-extensions-item-messagebar-wrapper:not(:has(moz-message-bar:not([hidden]))) {
   display: none !important;
 }
@@ -222,29 +239,7 @@
   font-weight: 600 !important;
 }
 
-/* ======================= v1.3.0 ======================= */
-
-/* ---------- Search field ---------- */
-#extensions-list-search {
-  display: block !important;
-  width: 100% !important;
-  height: 32px !important;
-  margin: 0 0 8px !important;
-  padding: 0 12px !important;
-  box-sizing: border-box !important;
-  border-radius: 8px !important;
-  border: 1px solid color-mix(in srgb, currentColor 12%, transparent) !important;
-  background: var(--ext-list-tile) !important;
-  color: inherit !important;
-  font-size: 12px !important;
-  outline: none !important;
-}
-#extensions-list-search:focus {
-  border-color: color-mix(in srgb, var(--ext-list-accent) 70%, transparent) !important;
-  background: var(--ext-list-tile-hover) !important;
-}
-
-/* search: matches at the top, the rest dimmed */
+/* ---------- Search results ---------- */
 #zen-site-data-addons[data-ext-searching] .unified-extensions-item:not([data-ext-match]) {
   opacity: 0.5 !important;
 }
@@ -255,7 +250,7 @@
   margin-bottom: 8px !important;
 }
 
-/* ---------- Hidden extensions (collapsed until "show all") ---------- */
+/* ---------- Hidden extensions (collapsed until the chevron is pressed) ---------- */
 #zen-site-data-addons:not([data-ext-show-hidden]) .unified-extensions-item[data-ext-hidden] {
   display: none !important;
 }
@@ -263,25 +258,43 @@
   opacity: 0.6 !important;
 }
 
+/* show / collapse hidden: a minimal chevron that flips */
 #extensions-list-hidden-toggle {
   order: 5000 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  min-height: 30px !important;
-  margin: 6px 0 2px !important;
-  padding: 0 12px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  margin: 4px 0 2px !important;
+  padding: 0 !important;
+  border: none !important;
   border-radius: 8px !important;
-  border: 1px dashed color-mix(in srgb, currentColor 22%, transparent) !important;
   background: transparent !important;
   color: inherit !important;
   appearance: none !important;
+  opacity: 0.7 !important;
+  transition: opacity 0.15s ease, background-color 0.15s ease !important;
 }
 #extensions-list-hidden-toggle[hidden] { display: none !important; }
-#extensions-list-hidden-toggle:hover { background: var(--ext-list-tile) !important; }
-#extensions-list-hidden-toggle .toolbarbutton-text {
-  font-size: 11px !important;
-  opacity: 0.85 !important;
+#extensions-list-hidden-toggle:hover {
+  background: var(--ext-list-tile) !important;
+  opacity: 1 !important;
+}
+#extensions-list-hidden-toggle .toolbarbutton-text { display: none !important; }
+#extensions-list-hidden-toggle .toolbarbutton-icon {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  background-color: currentColor !important;
+  -webkit-mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20d='M3.5%206%208%2010.5%2012.5%206'%20fill='none'%20stroke='black'%20stroke-width='1.6'%20stroke-linecap='round'%20stroke-linejoin='round'/></svg>") center / 16px 16px no-repeat !important;
+  mask: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'><path%20d='M3.5%206%208%2010.5%2012.5%206'%20fill='none'%20stroke='black'%20stroke-width='1.6'%20stroke-linecap='round'%20stroke-linejoin='round'/></svg>") center / 16px 16px no-repeat !important;
+  transform: rotate(0deg) !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+#extensions-list-hidden-toggle[data-expanded] .toolbarbutton-icon {
+  transform: rotate(180deg) !important;
 }
 
 /* ---------- No bottom fade/gradient on the list ---------- */
@@ -308,9 +321,7 @@
 #zen-site-data-addons .unified-extensions-item:hover,
 #zen-site-data-addons .unified-extensions-item:hover *,
 #zen-site-data-addons .unified-extensions-item:active,
-#zen-site-data-addons .unified-extensions-item:active *,
-#extensions-list-actions > toolbarbutton:hover,
-#extensions-list-actions > toolbarbutton:active {
+#zen-site-data-addons .unified-extensions-item:active * {
   transform: none !important;
   scale: none !important;
   translate: none !important;
@@ -318,26 +329,7 @@
   transition: none !important;
 }
 
-/* ======================= v1.4.0 ======================= */
-
-/* three icon buttons: + / settings / sort */
-#extensions-list-sort[data-sorted] {
-  border-color: color-mix(in srgb, var(--ext-list-accent) 60%, transparent) !important;
-  background: color-mix(in srgb, var(--ext-list-accent) 18%, transparent) !important;
-}
-
-/* context menu: our own separator collapsing + no Move Up/Down while sorted */
-#unified-extensions-context-menu menuseparator[data-ext-sep-collapsed] {
-  display: none !important;
-}
-#unified-extensions-context-menu #unified-extensions-context-menu-move-widget-up,
-#unified-extensions-context-menu #unified-extensions-context-menu-move-widget-down {
-  display: none !important; /* replaced by the drag handle */
-}
-
-/* ======================= v1.5.0 ======================= */
-
-/* drag handle: only in custom order, not while searching, visible on hover */
+/* ---------- Drag handle (custom order only, shown on hover) ---------- */
 #zen-site-data-addons .ext-drag-handle {
   display: none !important;
   flex: 0 0 16px !important;
@@ -356,16 +348,37 @@
 #zen-site-data-addons .unified-extensions-item:hover .ext-drag-handle { opacity: 0.45 !important; }
 #zen-site-data-addons .ext-drag-handle:hover { opacity: 1 !important; }
 
+/* ---------- Live drag: the row follows the pointer, the others slide out of the way ---------- */
 #zen-site-data-addons[data-ext-dragging],
 #zen-site-data-addons[data-ext-dragging] * {
   cursor: grabbing !important;
 }
-#zen-site-data-addons .unified-extensions-item[data-ext-dragging] {
-  opacity: 0.4 !important;
+#zen-site-data-addons[data-ext-dragging] .unified-extensions-item[data-ext-shift] {
+  transform: translateY(var(--ext-shift, 0px)) !important;
+  transition: transform 0.16s ease !important;
 }
-#zen-site-data-addons .unified-extensions-item[data-ext-drop="before"] .unified-extensions-item-row-wrapper {
-  box-shadow: 0 -2px 0 0 var(--ext-list-accent) !important;
+#zen-site-data-addons[data-ext-dragging] .unified-extensions-item[data-ext-dragging] {
+  transform: translateY(var(--ext-shift, 0px)) !important;
+  transition: none !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
-#zen-site-data-addons .unified-extensions-item[data-ext-drop="after"] .unified-extensions-item-row-wrapper {
-  box-shadow: 0 2px 0 0 var(--ext-list-accent) !important;
+#zen-site-data-addons[data-ext-dragging] .unified-extensions-item[data-ext-dragging][data-ext-settling] {
+  transition: transform 0.16s ease !important;
+}
+#zen-site-data-addons[data-ext-dragging] .unified-extensions-item[data-ext-dragging] .unified-extensions-item-row-wrapper {
+  background: var(--ext-list-tile-hover) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+}
+#zen-site-data-addons[data-ext-dragging] .unified-extensions-item[data-ext-dragging] .ext-drag-handle {
+  opacity: 1 !important;
+}
+
+/* ---------- Context menu ---------- */
+#unified-extensions-context-menu menuseparator[data-ext-sep-collapsed] {
+  display: none !important;
+}
+#unified-extensions-context-menu #unified-extensions-context-menu-move-widget-up,
+#unified-extensions-context-menu #unified-extensions-context-menu-move-widget-down {
+  display: none !important; /* replaced by the drag handle */
 }
