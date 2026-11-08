@@ -38,3 +38,10 @@
 - Separatory w menu 3 kropek czyszczone wg realnej widocznosci (bez dubli)
 - Sortowanie: nazwa A-Z/Z-A, data dodania, najczesciej/ostatnio uzywane; trzy osobne listy; wlasna karta potwierdzenia
 - Licznik uzycia (klikniecia w panelu)
+
+## 1.5.0
+- Szerokosc: ::part(content) auto zamiast wymuszonego width (ucinalo scroll)
+- Sortowanie/porzadek tylko dla elementow listy (nie dla przypietych do paska)
+- Uchwyt do przeciagania zamiast Move Up/Down (wlasna kolejnosc w prefie)
+- Usuniete ostrzezenie o sortowaniu
+- "Pokaz wszystkie" przewija do ukrytych

@@ -1,8 +1,9 @@
 /*
- * Extensions List for Zen Browser / Sine  (v1.4.0)
+ * Extensions List for Zen Browser / Sine  (v1.5.0)
  *  - icon action bar (AMO, extension settings, sort) + search
  *  - pin to top / hide at end (collapsible), sorted as three separate lists
- *  - sorting: name, install date, usage (click counter) - with inline confirmation
+ *  - sorting: name, install date, usage (click counter)
+ *  - drag handle for a custom order (replaces Move Up / Move Down)
  *  - tidy context menu (separators never doubled)
  */
 (() => {
@@ -13,13 +14,13 @@
   const PREF_HIDDEN = "extensions.list.sine.hidden";
   const PREF_SORT = "extensions.list.sine.sort";
   const PREF_USAGE = "extensions.list.sine.usage";
+  const PREF_ORDER = "extensions.list.sine.order";
   const ITEM_SELECTOR = ".unified-extensions-item";
   const LIST_ID = "zen-site-data-addons";
   const SECTION_ID = "zen-site-data-section-addons";
   const PANEL_ID = "zen-unified-site-data-panel";
   const ACTIONS_ID = "extensions-list-actions";
   const SEARCH_ID = "extensions-list-search";
-  const CONFIRM_ID = "extensions-list-confirm";
   const SORT_BTN_ID = "extensions-list-sort";
   const SORT_MENU_ID = "extensions-list-sort-menu";
   const TOGGLE_ID = "extensions-list-hidden-toggle";
@@ -35,7 +36,7 @@
   if (window.__extensionsListSine?.installed) return;
   const state = {
     installed: true, scheduled: false, addonManager: null,
-    query: "", showHidden: false, meta: new Map()
+    query: "", showHidden: false, meta: new Map(), drag: null
   };
   window.__extensionsListSine = state;
 
@@ -54,9 +55,6 @@
     search: "Szukaj rozszerzeń…",
     showAll: n => `Pokaż wszystkie (ukryte: ${n})`,
     collapse: n => `Zwiń ukryte (${n})`,
-    confirmText: "Sortowanie zastąpi Twoją własną kolejność (Przesuń w górę / w dół). Przypięte, zwykłe i ukryte są sortowane osobno.",
-    confirmYes: "Sortuj",
-    confirmNo: "Anuluj",
     modes: {
       "custom": "Własna kolejność",
       "name-asc": "Nazwa A–Z",
@@ -77,9 +75,6 @@
     search: "Search extensions…",
     showAll: n => `Show all (${n} hidden)`,
     collapse: n => `Collapse hidden (${n})`,
-    confirmText: "Sorting will replace your custom order (Move Up / Move Down). Pinned, regular and hidden extensions are sorted as separate lists.",
-    confirmYes: "Sort",
-    confirmNo: "Cancel",
     modes: {
       "custom": "Custom order",
       "name-asc": "Name A–Z",
@@ -222,11 +217,11 @@
 
     list.toggleAttribute("data-ext-searching", !!q);
     list.toggleAttribute("data-ext-show-hidden", state.showHidden);
+    list.toggleAttribute("data-ext-sorted", mode !== "custom");
     document.getElementById(SORT_BTN_ID)?.toggleAttribute("data-sorted", mode !== "custom");
-    document.getElementById(MENU_ID)?.toggleAttribute("data-ext-sorted", mode !== "custom");
 
     const groups = { match: [], pinned: [], normal: [], hidden: [] };
-    document.querySelectorAll(ITEM_SELECTOR).forEach((item, dom) => {
+    list.querySelectorAll(ITEM_SELECTOR).forEach((item, dom) => {
       const id = getExtensionId(item);
       const name = getName(item);
       const matches = !!q && name.toLowerCase().includes(q);
@@ -240,7 +235,14 @@
       groups[isHidden ? "hidden" : matches ? "match" : isPinned ? "pinned" : "normal"].push(e);
     });
 
-    const customCmp = (a, b) => (a.isPinned && b.isPinned ? a.pinIdx - b.pinIdx : a.dom - b.dom);
+    const order = readList(PREF_ORDER);
+    const rank = id => { const i = order.indexOf(id); return i < 0 ? Infinity : i; };
+    const customCmp = (a, b) => {
+      if (a.isPinned && b.isPinned) return a.pinIdx - b.pinIdx;
+      const ra = rank(a.id), rb = rank(b.id);
+      if (ra !== rb) return ra === Infinity ? 1 : rb === Infinity ? -1 : ra - rb;
+      return a.dom - b.dom;
+    };
     for (const g of Object.values(groups)) g.sort(cmp ? (a, b) => cmp(a, b) || a.dom - b.dom : customCmp);
 
     const setOrder = (e, order) => {
@@ -266,7 +268,7 @@
     }
   }
 
-  /* ---------- header: action buttons, sort menu, confirm card, search ---------- */
+  /* ---------- header: action buttons, sort menu, search ---------- */
   function makeButton(id, label, icon, onCommand) {
     const btn = document.createXULElement("toolbarbutton");
     btn.id = id;
@@ -323,59 +325,114 @@
     return popup;
   }
 
-  function hideConfirm() {
-    const box = document.getElementById(CONFIRM_ID);
-    if (box) { box.hidden = true; box.removeAttribute("data-mode"); }
-    fitSoon(false);
-  }
-
-  function showConfirm(mode) {
-    const box = document.getElementById(CONFIRM_ID);
-    if (!box) return;
-    box.setAttribute("data-mode", mode);
-    box.querySelector(".ext-confirm-mode").textContent = T.modes[mode];
-    box.hidden = false;
-    fitSoon(false);
-  }
-
   function requestSort(mode) {
     if (mode === getSortMode()) return;
-    // Switching away from the custom order is the destructive step -> ask first.
-    if (mode !== "custom" && getSortMode() === "custom") showConfirm(mode);
-    else { hideConfirm(); setSortMode(mode); refresh(true); }
+    setSortMode(mode);
+    refresh(true);
   }
 
-  function buildConfirm() {
-    const box = document.createElementNS(XHTML, "div");
-    box.id = CONFIRM_ID;
-    box.hidden = true;
+  /* ---------- drag handle (custom order only) ---------- */
+  const groupOf = item =>
+    item.hasAttribute("data-ext-hidden") ? "hidden" : item.hasAttribute("data-ext-pinned") ? "pinned" : "normal";
 
-    const text = document.createElementNS(XHTML, "div");
-    text.className = "ext-confirm-text";
-    text.textContent = T.confirmText;
+  function groupItems(list, group) {
+    return [...list.querySelectorAll(ITEM_SELECTOR)]
+      .filter(i => groupOf(i) === group && i.getBoundingClientRect().height > 0)
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+  }
 
-    const mode = document.createElementNS(XHTML, "div");
-    mode.className = "ext-confirm-mode";
+  function ensureHandles(list) {
+    for (const item of list.querySelectorAll(ITEM_SELECTOR)) {
+      if (item.querySelector(".ext-drag-handle")) continue;
+      const row = item.querySelector(".unified-extensions-item-row-wrapper");
+      const menuBtn = row?.querySelector(".unified-extensions-item-menu-button");
+      if (!row) continue;
+      const handle = document.createElementNS(XHTML, "div");
+      handle.className = "ext-drag-handle";
+      row.insertBefore(handle, menuBtn || null);
+    }
+  }
 
-    const row = document.createElementNS(XHTML, "div");
-    row.className = "ext-confirm-actions";
-    const no = document.createElementNS(XHTML, "button");
-    no.type = "button";
-    no.className = "ext-confirm-no";
-    no.textContent = T.confirmNo;
-    no.addEventListener("click", hideConfirm);
-    const yes = document.createElementNS(XHTML, "button");
-    yes.type = "button";
-    yes.className = "ext-confirm-yes";
-    yes.textContent = T.confirmYes;
-    yes.addEventListener("click", () => {
-      const m = box.getAttribute("data-mode");
-      hideConfirm();
-      if (m && SORT_MODES.includes(m)) { setSortMode(m); refresh(true); }
-    });
-    row.append(no, yes);
-    box.append(mode, text, row);
-    return box;
+  function clearDropMarks(list) {
+    list.querySelectorAll("[data-ext-drop]").forEach(i => i.removeAttribute("data-ext-drop"));
+  }
+
+  function updateDropTarget(drag, list) {
+    clearDropMarks(list);
+    const items = groupItems(list, drag.group);
+    let target = null, pos = "before";
+    for (const it of items) {
+      const r = it.getBoundingClientRect();
+      target = it;
+      if (drag.lastY < r.top + r.height / 2) { pos = "before"; break; }
+      pos = "after";
+    }
+    drag.target = target;
+    drag.pos = pos;
+    if (target && target !== drag.item) target.setAttribute("data-ext-drop", pos);
+  }
+
+  function commitDrag(drag, list) {
+    const { item, target, pos, group } = drag;
+    if (!target || target === item) return;
+    const ids = groupItems(list, group).map(getExtensionId).filter(Boolean);
+    const dragged = getExtensionId(item);
+    const from = ids.indexOf(dragged);
+    if (from < 0) return;
+    ids.splice(from, 1);
+    let to = ids.indexOf(getExtensionId(target));
+    if (to < 0) return;
+    if (pos === "after") to++;
+    ids.splice(to, 0, dragged);
+    if (group === "pinned") {
+      writeJson(PREF_PINNED, [...ids, ...readList(PREF_PINNED).filter(x => !ids.includes(x))]);
+    } else {
+      writeJson(PREF_ORDER, [...ids, ...readList(PREF_ORDER).filter(x => !ids.includes(x))]);
+    }
+  }
+
+  function startDrag(e, handle, list) {
+    if (e.button !== 0 || getSortMode() !== "custom" || state.query.trim()) return;
+    const item = handle.closest(ITEM_SELECTOR);
+    if (!item) return;
+    e.preventDefault();
+
+    const drag = { item, group: groupOf(item), target: null, pos: "before", lastY: e.clientY, timer: null };
+    state.drag = drag;
+    item.setAttribute("data-ext-dragging", "");
+    list.setAttribute("data-ext-dragging", "");
+    try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+
+    const onMove = ev => { drag.lastY = ev.clientY; updateDropTarget(drag, list); };
+    const finish = commit => {
+      clearInterval(drag.timer);
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      handle.removeEventListener("pointercancel", onCancel);
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (commit) commitDrag(drag, list);
+      clearDropMarks(list);
+      item.removeAttribute("data-ext-dragging");
+      list.removeAttribute("data-ext-dragging");
+      state.drag = null;
+      if (commit) refresh(true);
+    };
+    const onUp = () => finish(true);
+    const onCancel = () => finish(false);
+
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+    handle.addEventListener("pointercancel", onCancel);
+
+    // auto-scroll near the list edges
+    drag.timer = setInterval(() => {
+      const lr = list.getBoundingClientRect();
+      if (drag.lastY < lr.top + 28) list.scrollTop -= 10;
+      else if (drag.lastY > lr.bottom - 28) list.scrollTop += 10;
+      else return;
+      updateDropTarget(drag, list);
+    }, 30);
+    updateDropTarget(drag, list);
   }
 
   function ensureHeader() {
@@ -422,10 +479,22 @@
     toggle.className = "subviewbutton";
     toggle.setAttribute("closemenu", "none");
     toggle.hidden = true;
-    toggle.addEventListener("command", () => { state.showHidden = !state.showHidden; refresh(true); });
+    toggle.addEventListener("command", () => {
+      state.showHidden = !state.showHidden;
+      refresh(true);
+      if (state.showHidden) {
+        // bring the freshly revealed hidden extensions into view
+        setTimeout(() => toggle.scrollIntoView({ block: "start", behavior: "smooth" }), 120);
+      }
+    });
 
-    list.before(bar, search, buildConfirm());
+    list.before(bar, search);
     list.append(toggle);
+
+    list.addEventListener("pointerdown", e => {
+      const handle = e.target.closest?.(".ext-drag-handle");
+      if (handle) startDrag(e, handle, list);
+    }, true);
 
     // usage counter: any click on an extension's main button in this panel
     list.addEventListener("click", e => {
@@ -473,7 +542,7 @@
     return entry;
   }
 
-  /* Order: [permissions…] ─ Pin to Toolbar, Pin to top, Move Up, Move Down, Hide ─ Manage/Remove/Report */
+  /* Order: [permissions…] ─ Pin to Toolbar, Pin to top, Hide ─ Manage/Remove/Report (Move Up/Down replaced by the drag handle) */
   function arrangeMenu(menu, pin, hide) {
     let sep = document.getElementById(SEP_ID);
     if (!sep) {
@@ -485,8 +554,6 @@
       sep,
       q("#unified-extensions-context-menu-pin-to-toolbar"),
       pin,
-      q("#unified-extensions-context-menu-move-widget-up"),
-      q("#unified-extensions-context-menu-move-widget-down"),
       hide
     ].filter(Boolean);
     const anchor = q(".unified-extensions-context-menu-management-separator")
@@ -531,10 +598,11 @@
     const pin = ensureMenuItem(PIN_ITEM_ID, togglePinned);
     const hide = ensureMenuItem(HIDE_ITEM_ID, toggleHidden);
     arrangeMenu(menu, pin, hide);
-    menu.toggleAttribute("data-ext-sorted", getSortMode() !== "custom");
 
-    const item = menu.triggerNode?.closest?.(ITEM_SELECTOR);
-    const id = menu.dataset?.extensionId || (item ? getExtensionId(item) : "");
+    // only for extensions listed in our panel (not for the ones pinned to the toolbar)
+    const item = menu.triggerNode?.closest?.(`#${LIST_ID} ${ITEM_SELECTOR}`);
+    const panelOpen = getPanel()?.state === "open";
+    const id = item ? getExtensionId(item) : (panelOpen && !menu.triggerNode ? menu.dataset?.extensionId || "" : "");
     for (const e of [pin, hide]) {
       e.hidden = !id;
       if (id) e.setAttribute("data-ext-id", id);
@@ -549,11 +617,12 @@
   /* ---------- refresh loop ---------- */
   function refresh(resize) {
     state.scheduled = false;
-    document.querySelectorAll(ITEM_SELECTOR).forEach(ensureName);
     const list = document.getElementById(LIST_ID);
     if (list) {
+      list.querySelectorAll(ITEM_SELECTOR).forEach(ensureName);
       ensureHeader();
-      applyState(list);
+      ensureHandles(list);
+      if (!state.drag) applyState(list);
     }
     if (resize === true) fitSoon(false);
   }
@@ -579,7 +648,6 @@
     if (search) search.value = "";
     state.query = "";
     state.showHidden = false;
-    hideConfirm();
     fit.viewH = fit.popupH = null;
     refresh(false);
   }
