@@ -1,5 +1,5 @@
 /*
- * Extensions List for Zen Browser / Sine  (v1.7.0)
+ * Extensions List for Zen Browser / Sine  (v1.7.1)
  *  - icon action bar (AMO, extension settings, sort) + search
  *  - pin to top / hide at end (collapsible), sorted as three separate lists
  *  - sorting: name, install date, usage (click counter)
@@ -33,7 +33,7 @@
   // Mod settings (preferences.json -> Sine settings UI)
   const PREF_ALT_ENABLED = "mod.extensions-list.show_alt_stores";
   const PREF_ALT_STORES = "mod.extensions-list.alt_stores";
-  const DEFAULT_STORES = "Zen Mods|https://zen-browser.app/mods/; Sine Mods|about:preferences#sineMods";
+  const DEFAULT_STORES = "Zen Mods|https://zen-browser.app/mods/; Sine Mods|https://sineorg.github.io/store/";
   const XHTML = "http://www.w3.org/1999/xhtml";
   const PANEL_WIDTH = 332;
   const SORT_MODES = ["custom", "name-asc", "name-desc", "date-new", "date-old", "usage-most", "usage-recent"];

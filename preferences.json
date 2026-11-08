@@ -1,14 +1,14 @@
 [
   {
     "property": "mod.extensions-list.show_alt_stores",
-    "label": "Show alternative stores in the + button menu",
+    "label": "Show alternative stores in the + button menu / Pokaż alternatywne sklepy w menu przycisku +",
     "type": "checkbox",
     "defaultValue": false
   },
   {
     "property": "mod.extensions-list.alt_stores",
-    "label": "Alternative store links (Name|URL; Name|URL; …)",
+    "label": "Alternative store links / Linki do alternatywnych sklepów  (Name|URL; Name|URL; …)",
     "type": "string",
-    "defaultValue": "Zen Mods|https://zen-browser.app/mods/; Sine Mods|about:preferences#sineMods"
+    "defaultValue": "Zen Mods|https://zen-browser.app/mods/; Sine Mods|https://sineorg.github.io/store/"
   }
 ]

@@ -14,7 +14,7 @@ A [Sine](https://github.com/CosmoCreeper/Sine) mod that turns Zen's extensions p
 - **Action bar**: add extensions (opens Firefox Add-ons, or a menu with alternative stores), extension settings (`about:addons`) and sort.
 - Tidied three-dots menu (Pin to Toolbar → Pin to Top → Hide, no doubled separators).
 - Wider panel, list height snapped to whole rows, no bottom fade, no hover bounce, Zen's top buttons restyled to match.
-- Texts follow the browser language (Polish or English).
+- Texts follow the browser language (Polish or English); the labels in Sine's settings are bilingual because Sine can't localise them.
 
 ## Settings
 
@@ -23,7 +23,7 @@ Open the mod's settings in Sine:
 | Option | Description |
 | --- | --- |
 | Show alternative stores in the + button menu | When enabled, the **+** button opens a menu with Firefox Add-ons and your own links. When disabled it opens Firefox Add-ons directly. |
-| Alternative store links | `Name\|URL; Name\|URL; …` – edit, remove or add links. Only `http(s)://` and `about:` URLs are accepted. Default: `Zen Mods\|https://zen-browser.app/mods/; Sine Mods\|about:preferences#sineMods`. |
+| Alternative store links | `Name\|URL; Name\|URL; …` – edit, remove or add links. Only `http(s)://` and `about:` URLs are accepted. Default: `Zen Mods\|https://zen-browser.app/mods/; Sine Mods\|https://sineorg.github.io/store/`. |
 
 Everything else (pinned, hidden, custom order, sort mode, usage counters) is stored in preferences under `extensions.list.sine.*`.
 

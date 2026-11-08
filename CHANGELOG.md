@@ -61,3 +61,9 @@
 - Usuniety przycisk Manage w naglowku, mniejszy dolny margines listy
 - Gorne przyciski Zena w stylu paska akcji
 - README ze zrzutem ekranu
+
+## 1.7.1
+- Naprawa: ukryte rozszerzenia po rozwinieciu byly sciskane (flex-shrink) - wiersze maja teraz flex: none
+- Domyslny adres sklepu Sine: https://sineorg.github.io/store/
+- Wiekszy odstep miedzy uchwytem przeciagania a przyciskiem "..."
+- Dwujezyczne etykiety w ustawieniach Sine
