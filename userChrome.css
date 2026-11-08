@@ -219,3 +219,99 @@
 #zen-site-data-addons .unified-extensions-item[data-ext-pinned] .unified-extensions-item-name {
   font-weight: 600 !important;
 }
+
+/* ======================= v1.3.0 ======================= */
+
+/* ---------- Search field ---------- */
+#extensions-list-search {
+  display: block !important;
+  width: 100% !important;
+  height: 32px !important;
+  margin: 0 0 8px !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent) !important;
+  background: var(--ext-list-tile) !important;
+  color: inherit !important;
+  font-size: 12px !important;
+  outline: none !important;
+}
+#extensions-list-search:focus {
+  border-color: color-mix(in srgb, var(--ext-list-accent) 70%, transparent) !important;
+  background: var(--ext-list-tile-hover) !important;
+}
+
+/* search: matches at the top, the rest dimmed */
+#zen-site-data-addons[data-ext-searching] .unified-extensions-item:not([data-ext-match]) {
+  opacity: 0.5 !important;
+}
+#zen-site-data-addons .unified-extensions-item[data-ext-match] .unified-extensions-item-row-wrapper {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ext-list-accent) 55%, transparent) !important;
+}
+#zen-site-data-addons .unified-extensions-item[data-ext-last-match] {
+  margin-bottom: 8px !important;
+}
+
+/* ---------- Hidden extensions (collapsed until "show all") ---------- */
+#zen-site-data-addons:not([data-ext-show-hidden]) .unified-extensions-item[data-ext-hidden] {
+  display: none !important;
+}
+#zen-site-data-addons .unified-extensions-item[data-ext-hidden] {
+  opacity: 0.6 !important;
+}
+
+#extensions-list-hidden-toggle {
+  order: 5000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 30px !important;
+  margin: 6px 0 2px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  border: 1px dashed color-mix(in srgb, currentColor 22%, transparent) !important;
+  background: transparent !important;
+  color: inherit !important;
+  appearance: none !important;
+}
+#extensions-list-hidden-toggle[hidden] { display: none !important; }
+#extensions-list-hidden-toggle:hover { background: var(--ext-list-tile) !important; }
+#extensions-list-hidden-toggle .toolbarbutton-text {
+  font-size: 11px !important;
+  opacity: 0.85 !important;
+}
+
+/* ---------- No bottom fade/gradient on the list ---------- */
+#zen-site-data-addons,
+#zen-site-data-section-addons,
+#zen-site-data-section-addons .panel-subview-body {
+  mask: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  -webkit-mask: none !important;
+}
+#zen-site-data-addons::before,
+#zen-site-data-addons::after,
+#zen-site-data-section-addons::before,
+#zen-site-data-section-addons::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* ---------- No hover "bounce" / transforms ---------- */
+#zen-site-data-addons .unified-extensions-item,
+#zen-site-data-addons .unified-extensions-item *,
+#zen-site-data-addons .unified-extensions-item:hover,
+#zen-site-data-addons .unified-extensions-item:hover *,
+#zen-site-data-addons .unified-extensions-item:active,
+#zen-site-data-addons .unified-extensions-item:active *,
+#extensions-list-actions > toolbarbutton:hover,
+#extensions-list-actions > toolbarbutton:active {
+  transform: none !important;
+  scale: none !important;
+  translate: none !important;
+  animation: none !important;
+  transition: none !important;
+}

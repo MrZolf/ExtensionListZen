@@ -22,3 +22,9 @@
 - Poszerzenie wszystkich kontenerow panelu (panelmultiview/viewcontainer/viewstack)
 - Ukryty domyslny plus Zena; wlasne przyciski ikonowe (AMO + ustawienia)
 - Teksty wg jezyka przegladarki (pl/en)
+
+## 1.3.0
+- Wymuszanie szerokosci okienka panelu (panel.sizeTo)
+- Pasek wyszukiwania (dopasowane na gorze, reszta przyciemniona)
+- Ukrywanie rozszerzen na koniec listy + "Pokaz wszystkie"
+- Usuniety gradient na dole listy i animacja hover
