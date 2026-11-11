@@ -67,3 +67,6 @@
 - Domyslny adres sklepu Sine: https://sineorg.github.io/store/
 - Wiekszy odstep miedzy uchwytem przeciagania a przyciskiem "..."
 - Dwujezyczne etykiety w ustawieniach Sine
+
+## 1.8.0
+- Zmiana nazwy na Zolf Mods Extensions List (id modu i klucze preferencji bez zmian - zapisane przypiecia/kolejnosc zostaja)

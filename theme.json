@@ -1,17 +1,17 @@
 {
   "id": "extensions-list-sine",
-  "name": "Extensions List",
+  "name": "Zolf Mods Extensions List",
   "description": "Displays Zen Browser extensions in a named, scrollable vertical list.",
   "homepage": "https://github.com/",
   "readme": "README.md",
   "author": "Custom",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "style": {
     "chrome": "userChrome.css"
   },
   "scripts": {
     "extensions-list.uc.js": {
-      "name": "Extensions List",
+      "name": "Zolf Mods Extensions List",
       "description": "Adds real extension names to the unified extensions panel.",
       "include": [
         "chrome://browser/content/browser.xhtml"

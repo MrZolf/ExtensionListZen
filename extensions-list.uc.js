@@ -1,5 +1,5 @@
 /*
- * Extensions List for Zen Browser / Sine  (v1.7.1)
+ * Zolf Mods Extensions List for Zen Browser / Sine  (v1.8.0)
  *  - icon action bar (AMO, extension settings, sort) + search
  *  - pin to top / hide at end (collapsible), sorted as three separate lists
  *  - sorting: name, install date, usage (click counter)
